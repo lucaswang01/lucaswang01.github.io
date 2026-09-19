@@ -90,6 +90,14 @@
         content: "";
       }
 
+      .game-card.typing {
+        background: #f3a6c8;
+      }
+
+      .game-card.typing::after {
+        background: #b7ec83;
+      }
+
       .game-card:hover {
         transform: translate(-3px, -3px);
         box-shadow: 11px 11px 0 #18324a;
@@ -162,6 +170,11 @@
           <h2>Flappy Bird</h2>
           <p>Flap through the pipes, collect points, and try to beat your best score.</p>
           <span class="play">Play now →</span>
+        </a>
+        <a class="game-card typing" href="typing-game/">
+          <h2>Typing Game</h2>
+          <p>Type the words quickly and accurately before the timer runs out.</p>
+          <span class="play">Start typing →</span>
         </a>
       </section>
 

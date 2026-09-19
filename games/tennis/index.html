@@ -3,35 +3,415 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <meta name="theme-color" content="#b8df72">
+    <meta name="theme-color" content="#286749">
     <title>Lucas Tennis · Games Room</title>
     <style>
-      :root { font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; color: #fff; background: #347c55; }
+      :root {
+        color-scheme: dark;
+        font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+        color: #fff;
+        background: #173f2d;
+      }
+
       * { box-sizing: border-box; }
-      body { display: grid; min-height: 100vh; margin: 0; padding: 24px; background: #347c55; place-items: center; }
-      main { width: min(820px, 100%); }
-      .back { display: inline-block; margin-bottom: 24px; color: #fff; font-weight: 900; text-decoration: none; }
-      .court { position: relative; display: grid; min-height: 520px; padding: 36px; border: 6px solid #fff; background: #4a9e6b; place-items: center; text-align: center; box-shadow: 12px 12px 0 #173e2a; }
-      .court::before, .court::after { position: absolute; background: #fff; content: ""; }
-      .court::before { top: 50%; left: 0; width: 100%; height: 6px; }
-      .court::after { top: 0; left: 50%; width: 6px; height: 100%; }
-      .placeholder { position: relative; z-index: 1; max-width: 520px; padding: 34px; border: 4px solid #203e30; border-radius: 24px; color: #26384a; background: #fff8d8; box-shadow: 8px 8px 0 #203e30; }
-      .ball { display: block; margin-bottom: 14px; font-size: 4rem; }
-      h1 { margin: 0 0 12px; font-size: clamp(2.8rem, 9vw, 5rem); line-height: 1; letter-spacing: -.05em; }
-      p { margin: 0; color: #53645b; font-size: 1.1rem; line-height: 1.55; }
-      @media (max-width: 520px) { body { padding: 14px; } .court { min-height: 450px; padding: 18px; } .placeholder { padding: 26px 20px; } }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        padding: 20px;
+        background:
+          radial-gradient(circle at 15% 10%, #4b966d 0, transparent 28rem),
+          linear-gradient(145deg, #286749, #173f2d);
+      }
+
+      main { width: min(1000px, 100%); margin: 0 auto; }
+
+      .topbar {
+        display: flex;
+        align-items: end;
+        justify-content: space-between;
+        gap: 20px;
+        margin-bottom: 18px;
+      }
+
+      .back { color: #fff; font-weight: 900; text-decoration: none; }
+      .back:hover { text-decoration: underline; }
+
+      h1 {
+        margin: 6px 0 0;
+        font-size: clamp(2rem, 6vw, 4.2rem);
+        line-height: .95;
+        letter-spacing: -.05em;
+      }
+
+      .controls {
+        margin: 0;
+        color: #d5eadf;
+        font-size: .9rem;
+        font-weight: 800;
+        text-align: right;
+      }
+
+      kbd {
+        display: inline-block;
+        padding: 4px 7px;
+        border: 2px solid #fff8;
+        border-radius: 6px;
+        color: #20382b;
+        background: #fff;
+        box-shadow: 0 3px #9ab7a6;
+        font: 900 .78rem inherit;
+      }
+
+      .game-shell {
+        position: relative;
+        overflow: hidden;
+        border: 5px solid #fff;
+        border-radius: 18px;
+        background: #367b55;
+        box-shadow: 12px 14px 0 #102c20;
+      }
+
+      canvas {
+        display: block;
+        width: 100%;
+        height: auto;
+        aspect-ratio: 3 / 2;
+      }
+
+      .scoreboard {
+        position: absolute;
+        z-index: 2;
+        top: 14px;
+        left: 50%;
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        padding: 8px 15px;
+        border: 3px solid #fff;
+        border-radius: 999px;
+        color: #fff;
+        background: #163d2ccc;
+        font-weight: 900;
+        transform: translateX(-50%);
+        backdrop-filter: blur(6px);
+      }
+
+      .scoreboard strong { font-size: 1.45rem; }
+      .you { color: #ffdc68; }
+      .computer { color: #ff9f9f; }
+
+      .message {
+        position: absolute;
+        z-index: 2;
+        bottom: 18px;
+        left: 50%;
+        margin: 0;
+        padding: 9px 16px;
+        border-radius: 999px;
+        color: #20382b;
+        background: #fffbe8e8;
+        font-weight: 900;
+        text-align: center;
+        transform: translateX(-50%);
+        pointer-events: none;
+      }
+
+      .mobile-controls { display: none; }
+
+      @media (max-width: 700px) {
+        body { padding: 12px; }
+        .topbar { align-items: start; flex-direction: column; }
+        .controls { text-align: left; }
+        .game-shell { box-shadow: 7px 8px 0 #102c20; }
+        .scoreboard { top: 7px; padding: 5px 11px; font-size: .75rem; }
+        .scoreboard strong { font-size: 1.1rem; }
+        .message { bottom: 8px; width: max-content; max-width: 90%; font-size: .78rem; }
+      }
     </style>
   </head>
   <body>
     <main>
-      <a class="back" href="../">← Back to the Games Room</a>
-      <section class="court">
-        <div class="placeholder">
-          <span class="ball" aria-hidden="true">🎾</span>
+      <div class="topbar">
+        <div>
+          <a class="back" href="../">← Back to the Games Room</a>
           <h1>Lucas Tennis</h1>
-          <p>The court is ready. The tennis game will be built here next.</p>
         </div>
+        <p class="controls"><kbd>↑</kbd> <kbd>↓</kbd> <kbd>←</kbd> <kbd>→</kbd> move &nbsp; <kbd>Space</kbd> swing / serve</p>
+      </div>
+
+      <section class="game-shell" aria-label="Lucas Tennis game">
+        <div class="scoreboard" aria-label="Score">
+          <span class="you">YOU</span><strong id="player-score">0</strong>
+          <span>–</span>
+          <strong id="computer-score">0</strong><span class="computer">CPU</span>
+        </div>
+        <canvas id="game" width="900" height="600" tabindex="0" aria-label="Tennis court. Use arrow keys to move and space to swing."></canvas>
+        <p class="message" id="message" aria-live="polite">Press Space to serve</p>
       </section>
     </main>
+
+    <script>
+      (() => {
+        'use strict';
+
+        const canvas = document.querySelector('#game');
+        const context = canvas.getContext('2d');
+        const message = document.querySelector('#message');
+        const playerScore = document.querySelector('#player-score');
+        const computerScore = document.querySelector('#computer-score');
+        const W = canvas.width;
+        const H = canvas.height;
+        const keys = new Set();
+        const court = { left: 95, right: 805, top: 48, bottom: 552, net: 300 };
+        const player = { x: 450, y: 480, radius: 24, speed: 285, swing: 0, side: 1 };
+        const cpu = { x: 450, y: 120, radius: 24, speed: 205, swing: 0, side: -1 };
+        const ball = { x: 450, y: 435, radius: 10, vx: 0, vy: 0, moving: false, lastHit: 'player', trail: [] };
+        let scores = { player: 0, cpu: 0 };
+        let last = performance.now();
+        let serveDelay = 0;
+
+        function resetPoint(winner) {
+          ball.moving = false;
+          ball.vx = 0;
+          ball.vy = 0;
+          ball.trail = [];
+          player.x = 450;
+          player.y = 480;
+          cpu.x = 450;
+          cpu.y = 120;
+          ball.x = player.x;
+          ball.y = player.y - 45;
+          serveDelay = .65;
+          if (winner) {
+            scores[winner] += 1;
+            playerScore.textContent = scores.player;
+            computerScore.textContent = scores.cpu;
+            message.textContent = winner === 'player' ? 'Point to you! Press Space to serve' : 'Point to CPU. Press Space to serve';
+          } else {
+            message.textContent = 'Press Space to serve';
+          }
+        }
+
+        function serve() {
+          if (ball.moving || serveDelay > 0) return;
+          ball.moving = true;
+          ball.lastHit = 'player';
+          ball.vx = (Math.random() - .5) * 170;
+          ball.vy = -360;
+          player.swing = .24;
+          message.textContent = 'Rally!';
+        }
+
+        function swingPlayer() {
+          if (!ball.moving) {
+            serve();
+            return;
+          }
+          if (player.swing > 0) return;
+          player.swing = .22;
+          const distance = Math.hypot(ball.x - player.x, ball.y - player.y);
+          if (distance < 92 && ball.y < player.y + 24 && ball.lastHit !== 'player') {
+            ball.lastHit = 'player';
+            ball.vy = -Math.max(385, Math.abs(ball.vy) * 1.045);
+            ball.vx = (ball.x - player.x) * 5.1 + (keys.has('ArrowRight') - keys.has('ArrowLeft')) * 110;
+            message.textContent = 'Nice hit!';
+          }
+        }
+
+        function swingCpu() {
+          cpu.swing = .22;
+          ball.lastHit = 'cpu';
+          ball.vy = Math.max(360, Math.abs(ball.vy) * 1.035);
+          const target = player.x + (Math.random() - .5) * 220;
+          ball.vx = (target - ball.x) * 1.45;
+          message.textContent = 'CPU returns!';
+        }
+
+        function updatePlayer(dt) {
+          let dx = (keys.has('ArrowRight') ? 1 : 0) - (keys.has('ArrowLeft') ? 1 : 0);
+          let dy = (keys.has('ArrowDown') ? 1 : 0) - (keys.has('ArrowUp') ? 1 : 0);
+          if (dx && dy) { dx *= .707; dy *= .707; }
+          player.x += dx * player.speed * dt;
+          player.y += dy * player.speed * dt;
+          player.x = Math.max(court.left + 28, Math.min(court.right - 28, player.x));
+          player.y = Math.max(court.net + 44, Math.min(court.bottom - 28, player.y));
+        }
+
+        function updateCpu(dt) {
+          const targetX = ball.moving && ball.vy < 0 ? ball.x : 450;
+          const targetY = ball.moving && ball.vy < 0 ? Math.min(230, Math.max(90, ball.y - 65)) : 120;
+          const dx = targetX - cpu.x;
+          const dy = targetY - cpu.y;
+          const length = Math.hypot(dx, dy) || 1;
+          const step = Math.min(cpu.speed * dt, length);
+          cpu.x += dx / length * step;
+          cpu.y += dy / length * step;
+          cpu.x = Math.max(court.left + 28, Math.min(court.right - 28, cpu.x));
+          cpu.y = Math.max(court.top + 28, Math.min(court.net - 44, cpu.y));
+
+          if (ball.moving && ball.vy < 0 && ball.lastHit !== 'cpu' && Math.hypot(ball.x - cpu.x, ball.y - cpu.y) < 84) {
+            swingCpu();
+          }
+        }
+
+        function updateBall(dt) {
+          if (!ball.moving) {
+            ball.x = player.x;
+            ball.y = player.y - 45;
+            return;
+          }
+
+          ball.x += ball.vx * dt;
+          ball.y += ball.vy * dt;
+          ball.trail.unshift({ x: ball.x, y: ball.y });
+          ball.trail.length = Math.min(ball.trail.length, 7);
+
+          if (ball.x - ball.radius < court.left) {
+            ball.x = court.left + ball.radius;
+            ball.vx = Math.abs(ball.vx) * .88;
+          } else if (ball.x + ball.radius > court.right) {
+            ball.x = court.right - ball.radius;
+            ball.vx = -Math.abs(ball.vx) * .88;
+          }
+
+          if (ball.y < court.top - 28) resetPoint('player');
+          if (ball.y > court.bottom + 28) resetPoint('cpu');
+        }
+
+        function update(dt) {
+          serveDelay = Math.max(0, serveDelay - dt);
+          player.swing = Math.max(0, player.swing - dt);
+          cpu.swing = Math.max(0, cpu.swing - dt);
+          updatePlayer(dt);
+          updateCpu(dt);
+          updateBall(dt);
+        }
+
+        function line(x1, y1, x2, y2, width = 4, color = '#fff') {
+          context.beginPath();
+          context.moveTo(x1, y1);
+          context.lineTo(x2, y2);
+          context.lineWidth = width;
+          context.strokeStyle = color;
+          context.stroke();
+        }
+
+        function drawCourt() {
+          context.fillStyle = '#3d9562';
+          context.fillRect(0, 0, W, H);
+          context.fillStyle = '#479e6b';
+          context.fillRect(court.left, court.top, court.right - court.left, court.bottom - court.top);
+          context.strokeStyle = '#fff';
+          context.lineWidth = 6;
+          context.strokeRect(court.left, court.top, court.right - court.left, court.bottom - court.top);
+          line(W / 2, court.top, W / 2, court.net - 18, 4, '#ffffffcc');
+          line(W / 2, court.net + 18, W / 2, court.bottom, 4, '#ffffffcc');
+          line(court.left, 190, court.right, 190, 4, '#ffffffcc');
+          line(court.left, 410, court.right, 410, 4, '#ffffffcc');
+
+          context.fillStyle = '#183c2ccc';
+          context.fillRect(court.left - 14, court.net - 7, court.right - court.left + 28, 14);
+          line(court.left - 14, court.net - 7, court.right + 14, court.net - 7, 3, '#fff');
+          context.fillStyle = '#fff';
+          context.fillRect(court.left - 18, court.net - 16, 8, 32);
+          context.fillRect(court.right + 10, court.net - 16, 8, 32);
+        }
+
+        function drawRacket(person, color) {
+          const swinging = person.swing > 0;
+          const direction = person.side;
+          const angle = swinging ? direction * -1.2 : direction * -.38;
+          const handX = person.x + 19;
+          const handY = person.y + direction * 2;
+          context.save();
+          context.translate(handX, handY);
+          context.rotate(angle);
+          context.strokeStyle = '#33271e';
+          context.lineWidth = 7;
+          context.lineCap = 'round';
+          line(0, 0, 27, direction * 24, 7, '#5e3e25');
+          context.beginPath();
+          context.ellipse(38, direction * 35, 17, 25, -.5, 0, Math.PI * 2);
+          context.fillStyle = '#edf7f1';
+          context.fill();
+          context.strokeStyle = color;
+          context.lineWidth = 6;
+          context.stroke();
+          context.restore();
+        }
+
+        function drawPerson(person, shirt, label) {
+          context.save();
+          context.translate(person.x, person.y);
+          context.fillStyle = '#0003';
+          context.beginPath();
+          context.ellipse(0, 18, 25, 11, 0, 0, Math.PI * 2);
+          context.fill();
+          context.fillStyle = shirt;
+          context.beginPath();
+          context.arc(0, 0, person.radius, 0, Math.PI * 2);
+          context.fill();
+          context.strokeStyle = '#20382b';
+          context.lineWidth = 4;
+          context.stroke();
+          context.fillStyle = '#f5c89d';
+          context.beginPath();
+          context.arc(0, person.side * -17, 13, 0, Math.PI * 2);
+          context.fill();
+          context.restore();
+          drawRacket(person, shirt);
+          context.fillStyle = '#fff';
+          context.font = '900 13px ui-rounded, sans-serif';
+          context.textAlign = 'center';
+          context.fillText(label, person.x, person.y + person.side * -42);
+        }
+
+        function drawBall() {
+          ball.trail.forEach((point, index) => {
+            context.globalAlpha = Math.max(0, .22 - index * .03);
+            context.fillStyle = '#edff5b';
+            context.beginPath();
+            context.arc(point.x, point.y, ball.radius - index * .7, 0, Math.PI * 2);
+            context.fill();
+          });
+          context.globalAlpha = 1;
+          context.fillStyle = '#eaff57';
+          context.beginPath();
+          context.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+          context.fill();
+          context.strokeStyle = '#fff';
+          context.lineWidth = 2;
+          context.stroke();
+        }
+
+        function draw() {
+          drawCourt();
+          drawPerson(cpu, '#ff8585', 'CPU');
+          drawPerson(player, '#ffcf4f', 'YOU');
+          drawBall();
+        }
+
+        function frame(now) {
+          const dt = Math.min((now - last) / 1000, .032);
+          last = now;
+          update(dt);
+          draw();
+          requestAnimationFrame(frame);
+        }
+
+        document.addEventListener('keydown', event => {
+          if (event.code.startsWith('Arrow') || event.code === 'Space') event.preventDefault();
+          keys.add(event.code);
+          if (event.code === 'Space' && !event.repeat) swingPlayer();
+        });
+        document.addEventListener('keyup', event => keys.delete(event.code));
+        window.addEventListener('blur', () => keys.clear());
+        canvas.addEventListener('pointerdown', () => canvas.focus());
+
+        resetPoint();
+        requestAnimationFrame(frame);
+      })();
+    </script>
   </body>
 </html>

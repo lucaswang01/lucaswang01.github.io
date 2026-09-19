@@ -100,6 +100,7 @@
       .scoreboard strong { font-size: 1.45rem; }
       .you { color: #ffdc68; }
       .computer { color: #ff9f9f; }
+      .goal { padding-left: 11px; border-left: 1px solid #ffffff66; color: #d5eadf; font-size: .72rem; letter-spacing: .05em; text-transform: uppercase; }
 
       .message {
         position: absolute;
@@ -145,6 +146,7 @@
           <span class="you">YOU</span><strong id="player-score">0</strong>
           <span>–</span>
           <strong id="computer-score">0</strong><span class="computer">CPU</span>
+          <span class="goal">First to 21</span>
         </div>
         <canvas id="game" width="900" height="600" tabindex="0" aria-label="Tennis court. Use arrow keys to move and space to swing."></canvas>
         <p class="message" id="message" aria-live="polite">Press Space to serve</p>
@@ -162,12 +164,14 @@
         const computerScore = document.querySelector('#computer-score');
         const W = canvas.width;
         const H = canvas.height;
+        const WINNING_SCORE = 21;
         const keys = new Set();
         const court = { left: 95, right: 805, top: 48, bottom: 552, net: 300 };
         const player = { x: 450, y: 480, radius: 24, speed: 285, swing: 0, side: 1 };
         const cpu = { x: 450, y: 120, radius: 24, speed: 205, swing: 0, side: -1 };
         const ball = { x: 450, y: 435, radius: 10, vx: 0, vy: 0, moving: false, lastHit: 'player', trail: [] };
         let scores = { player: 0, cpu: 0 };
+        let matchOver = false;
         let last = performance.now();
         let serveDelay = 0;
 
@@ -187,10 +191,23 @@
             scores[winner] += 1;
             playerScore.textContent = scores.player;
             computerScore.textContent = scores.cpu;
-            message.textContent = winner === 'player' ? 'Point to you! Press Space to serve' : 'Point to CPU. Press Space to serve';
+            if (scores[winner] === WINNING_SCORE) {
+              matchOver = true;
+              message.textContent = winner === 'player' ? 'You win 21! Press Space for a new match' : 'CPU wins 21! Press Space for a new match';
+            } else {
+              message.textContent = winner === 'player' ? 'Point to you! Press Space to serve' : 'Point to CPU. Press Space to serve';
+            }
           } else {
             message.textContent = 'Press Space to serve';
           }
+        }
+
+        function resetMatch() {
+          scores = { player: 0, cpu: 0 };
+          playerScore.textContent = '0';
+          computerScore.textContent = '0';
+          matchOver = false;
+          resetPoint();
         }
 
         function serve() {
@@ -204,6 +221,10 @@
         }
 
         function swingPlayer() {
+          if (matchOver) {
+            resetMatch();
+            return;
+          }
           if (!ball.moving) {
             serve();
             return;
@@ -409,7 +430,7 @@
         window.addEventListener('blur', () => keys.clear());
         canvas.addEventListener('pointerdown', () => canvas.focus());
 
-        resetPoint();
+        resetMatch();
         requestAnimationFrame(frame);
       })();
     </script>

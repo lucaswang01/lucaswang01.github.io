@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#68cbb7">
+    <title>Games Room · Lucas's House</title>
+    <style>
+      :root { font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; color: #26384a; background: #d9f4ea; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; background: repeating-linear-gradient(90deg, #d9f4ea 0 64px, #d0edde 64px 66px); }
+      main { width: min(960px, calc(100% - 32px)); margin: 0 auto; padding: 34px 0 70px; }
+      .back { display: inline-block; margin-bottom: 48px; color: inherit; font-weight: 900; text-decoration: none; }
+      .back:hover { text-decoration: underline; }
+      .eyebrow { margin: 0 0 8px; color: #267260; font-size: .8rem; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(3rem, 9vw, 6rem); line-height: 1; letter-spacing: -.055em; }
+      .intro { max-width: 600px; margin: 18px 0 42px; color: #526a69; font-size: 1.12rem; line-height: 1.55; }
+      .games { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 24px; }
+      .game { position: relative; display: block; min-height: 300px; overflow: hidden; padding: 34px; border: 4px solid #26384a; border-radius: 28px; color: inherit; background: #b8df72; box-shadow: 9px 9px 0 #26384a; text-decoration: none; transition: transform 160ms ease; }
+      .game::before { position: absolute; right: -50px; bottom: -60px; width: 230px; height: 230px; border: 5px solid #fff; border-radius: 50%; background: #d9f2a1; content: ""; }
+      .game::after { position: absolute; right: 62px; bottom: -40px; width: 5px; height: 270px; background: #fff; content: ""; transform: rotate(35deg); }
+      .game:hover { transform: translate(-4px, -4px); }
+      .game:focus-visible { outline: 6px solid #f1a5c4; outline-offset: 6px; }
+      .game h2, .game p, .game span { position: relative; z-index: 1; }
+      .game h2 { margin: 0 0 10px; font-size: clamp(2.2rem, 6vw, 3.8rem); letter-spacing: -.04em; }
+      .game p { max-width: 390px; margin: 0; font-size: 1.05rem; line-height: 1.5; }
+      .play { position: absolute !important; right: 28px; bottom: 24px; padding: 10px 16px; border: 3px solid #26384a; border-radius: 999px; background: #fff; font-weight: 900; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="../">← Back to the entrance</a>
+      <p class="eyebrow">Room one</p>
+      <h1>Games Room</h1>
+      <p class="intro">This is where Lucas's games live. More games can be added as new folders later.</p>
+      <section class="games" aria-label="Games">
+        <a class="game" href="tennis/">
+          <h2>Lucas Tennis</h2>
+          <p>A tennis game is being built here. Step onto the court to see the placeholder.</p>
+          <span class="play">Enter court →</span>
+        </a>
+      </section>
+    </main>
+  </body>
+</html>

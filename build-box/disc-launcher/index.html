@@ -97,10 +97,69 @@
       figure:first-child figcaption { background: #f0a9c5; }
       figure:last-child figcaption { background: #87d9c6; }
 
+      .story {
+        margin-top: 54px;
+        padding: clamp(24px, 5vw, 42px);
+        border: 4px solid #3f2e29;
+        border-radius: 24px;
+        background: #fff8df;
+        box-shadow: 9px 10px 0 #3f2e29;
+      }
+
+      h2 {
+        margin: 0 0 16px;
+        font-size: clamp(2rem, 5vw, 3.2rem);
+        letter-spacing: -.04em;
+      }
+
+      .story p {
+        max-width: 880px;
+        margin: 0;
+        color: #705b52;
+        font-size: clamp(1.05rem, 2vw, 1.22rem);
+        line-height: 1.7;
+      }
+
+      .draft-toggle {
+        margin-top: 28px;
+        padding: 13px 20px;
+        border: 3px solid #3f2e29;
+        border-radius: 999px;
+        color: #3f2e29;
+        background: #87d9c6;
+        box-shadow: 4px 4px 0 #3f2e29;
+        font: 900 1rem inherit;
+        cursor: pointer;
+      }
+
+      .draft-toggle:hover { transform: translate(-1px, -1px); }
+      .draft-toggle:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #3f2e29; }
+      .draft-toggle:focus-visible { outline: 5px solid #f0a9c5; outline-offset: 5px; }
+
+      .draft {
+        margin-top: 30px;
+        overflow: hidden;
+        border: 4px solid #3f2e29;
+        border-radius: 18px;
+        background: #fff;
+      }
+
+      .draft[hidden] { display: none; }
+      .draft img { background: #fff; }
+
+      .draft p {
+        max-width: none;
+        padding: 14px 18px;
+        border-top: 4px solid #3f2e29;
+        background: #f0a9c5;
+        font-size: 1rem;
+        font-weight: 900;
+      }
+
       @media (max-width: 720px) {
         .back { margin-bottom: 38px; }
         .gallery { grid-template-columns: 1fr; }
-        figure { box-shadow: 6px 7px 0 #3f2e29; }
+        figure, .story { box-shadow: 6px 7px 0 #3f2e29; }
       }
     </style>
   </head>
@@ -121,6 +180,29 @@
           <figcaption>Bottom view</figcaption>
         </figure>
       </section>
+
+      <section class="story" aria-labelledby="story-title">
+        <h2 id="story-title">How it works</h2>
+        <p>This is a disk launcher. The little red frisbees are the disks. The blue lighting shaped bar works by pushing the disks into the (spinning if turned on) blue circle called the flywheel which will squeeze the disks against the foam bar. And then if (if it works right) it will shoot out of the end.</p>
+        <button class="draft-toggle" id="draft-toggle" type="button" aria-expanded="false" aria-controls="draft">Show original handwritten draft</button>
+
+        <div class="draft" id="draft" hidden>
+          <img src="images/original-handwritten-draft.jpg" alt="Lucas's original handwritten explanation and sketch notes for the disc launcher" width="1800" height="1350">
+          <p>Original handwritten draft</p>
+        </div>
+      </section>
     </main>
+
+    <script>
+      const button = document.querySelector('#draft-toggle');
+      const draft = document.querySelector('#draft');
+
+      button.addEventListener('click', () => {
+        const isOpen = button.getAttribute('aria-expanded') === 'true';
+        button.setAttribute('aria-expanded', String(!isOpen));
+        button.textContent = isOpen ? 'Show original handwritten draft' : 'Hide original handwritten draft';
+        draft.hidden = isOpen;
+      });
+    </script>
   </body>
 </html>

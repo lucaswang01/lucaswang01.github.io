@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#aeb7f5">
+    <title>Math Room · Lucas's House</title>
+    <style>
+      :root { color-scheme: light; font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; color: #29314f; background: #f2f0ff; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; background: radial-gradient(circle at 85% 12%, #ffd966 0 7%, transparent 7.2%), linear-gradient(145deg, #faf9ff, #dcdfff); }
+      main { width: min(980px, calc(100% - 28px)); margin: 0 auto; padding: 32px 0 72px; }
+      .back { display: inline-block; margin-bottom: 42px; color: inherit; font-weight: 900; text-decoration: none; }
+      .back:hover { text-decoration: underline; }
+      .eyebrow { margin: 0 0 8px; color: #616cc0; font-size: .8rem; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(3.2rem, 10vw, 6.5rem); line-height: .95; letter-spacing: -.06em; }
+      .intro { max-width: 630px; margin: 18px 0 44px; color: #5e6580; font-size: 1.12rem; line-height: 1.55; }
+      .ladder-wrap { display: grid; grid-template-columns: minmax(240px, 430px) 1fr; align-items: center; gap: clamp(28px, 7vw, 80px); }
+      .ladder { position: relative; display: flex; min-height: 900px; padding: 28px 52px; align-items: stretch; flex-direction: column-reverse; justify-content: space-between; }
+      .ladder::before, .ladder::after { position: absolute; top: 0; bottom: 0; width: 20px; border: 4px solid #49331f; border-radius: 12px; background: #a66a3e; box-shadow: inset -5px 0 #0002; content: ""; }
+      .ladder::before { left: 22px; }
+      .ladder::after { right: 22px; }
+      .rung { position: relative; z-index: 1; display: grid; width: 100%; height: 48px; border: 4px solid #49331f; border-radius: 12px; color: #6b6f85; background: #d6d1cb; place-items: center; font-size: 1rem; font-weight: 900; text-decoration: none; box-shadow: inset 0 -6px #00000014; }
+      a.rung { color: #29314f; background: #ffd966; transition: transform 150ms ease, background 150ms ease; }
+      a.rung:nth-child(4) { background: #81dec7; }
+      a.rung:hover { background: #fff1a8; transform: translateX(9px); }
+      a.rung:focus-visible { outline: 5px solid #ed75a6; outline-offset: 4px; }
+      .coming { padding: 28px; border: 4px solid #29314f; border-radius: 24px; background: #fff; box-shadow: 9px 10px 0 #29314f; }
+      .coming h2 { margin: 0 0 12px; font-size: 2rem; }
+      .coming p { margin: 0; color: #686f87; line-height: 1.6; }
+      .key { display: flex; gap: 18px; margin-top: 25px; flex-wrap: wrap; font-size: .85rem; font-weight: 800; }
+      .key span::before { display: inline-block; width: 13px; height: 13px; margin-right: 7px; border: 2px solid #29314f; border-radius: 4px; background: #ffd966; content: ""; vertical-align: -2px; }
+      .key span:last-child::before { background: #d6d1cb; }
+      @media (max-width: 720px) { .ladder-wrap { grid-template-columns: 1fr; } .ladder { min-height: 820px; } .coming { order: -1; box-shadow: 6px 7px 0 #29314f; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="../">← Back to the entrance</a>
+      <p class="eyebrow">Room three</p>
+      <h1>Math Room</h1>
+      <p class="intro">Climb the ladder from Kindergarten to Grade 12. Each open rung leads to math games made for that grade.</p>
+      <div class="ladder-wrap">
+        <nav class="ladder" aria-label="Math grades">
+          <a class="rung" href="k/">K · Kindergarten</a>
+          <span class="rung">1 · Coming soon</span>
+          <span class="rung">2 · Coming soon</span>
+          <a class="rung" href="grade-3/">3 · Third Grade</a>
+          <span class="rung">4 · Coming soon</span>
+          <span class="rung">5 · Coming soon</span>
+          <span class="rung">6 · Coming soon</span>
+          <span class="rung">7 · Coming soon</span>
+          <span class="rung">8 · Coming soon</span>
+          <span class="rung">9 · Coming soon</span>
+          <span class="rung">10 · Coming soon</span>
+          <span class="rung">11 · Coming soon</span>
+          <span class="rung">12 · Coming soon</span>
+        </nav>
+        <aside class="coming">
+          <h2>Choose a rung</h2>
+          <p>Kindergarten and Third Grade are open now. The other grades are ready for future games.</p>
+          <div class="key"><span>Games available</span><span>Coming soon</span></div>
+        </aside>
+      </div>
+    </main>
+  </body>
+</html>

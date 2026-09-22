@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#81dec7">
+    <title>Third Grade Math · Lucas's Math Room</title>
+    <link rel="stylesheet" href="../math-game.css">
+  </head>
+  <body>
+    <main>
+      <a class="back" href="../">← Back to the Math ladder</a>
+      <p class="eyebrow">Third Grade</p>
+      <h1>Grade 3 Math Games</h1>
+      <p class="intro">Choose a level and solve 10 questions. You can keep trying until every answer is right!</p>
+
+      <section class="panel" id="levels-panel">
+        <h2>Choose a level</h2>
+        <div class="levels" id="levels"></div>
+      </section>
+
+      <section class="panel" id="setup-panel" hidden>
+        <h2 id="setup-title">Choose a mode</h2>
+        <div class="mode-options">
+          <article class="mode-card">
+            <h3>Random numbers</h3>
+            <p>Both single-digit numbers change every question.</p>
+            <button class="button" id="random-mode" type="button">Play random</button>
+          </article>
+          <article class="mode-card">
+            <h3>Pick the first number</h3>
+            <p>Choose the first number. A dice picks the second number for every question.</p>
+            <button class="button" id="pick-mode" type="button">Pick a number</button>
+            <div class="pick-row" id="pick-row" hidden>
+              <select id="picked-number" aria-label="First multiplication number"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option></select>
+              <button class="button" id="start-picked" type="button">Start</button>
+            </div>
+          </article>
+        </div>
+        <button class="button secondary" type="button" data-show-levels>← Levels</button>
+      </section>
+
+      <section class="panel" id="game-panel" hidden>
+        <div class="game-top"><h2 id="game-title">Math Game</h2><button class="button secondary" type="button" data-show-levels>Change level</button></div>
+        <p class="progress" id="progress-text">Question 1 of 10</p>
+        <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
+        <div class="question-area"><div class="dice" id="dice" hidden aria-label="Rolling the dice">🎲</div><p class="question" id="question"></p></div>
+        <form class="answer-form" id="answer-form"><label for="answer" class="eyebrow">Your answer</label><input id="answer" type="number" inputmode="numeric" required autocomplete="off"><button class="button" id="submit" type="submit">Submit</button></form>
+        <p class="feedback" id="feedback" aria-live="polite"></p>
+      </section>
+
+      <section class="panel celebration" id="complete-panel" hidden>
+        <p class="animals" id="animals" aria-hidden="true"></p>
+        <h2>Congratulations!</h2>
+        <p>You finished all 10 questions. Your animal friends are cheering for you!</p>
+        <div class="celebration-actions"><button class="button" id="play-again" type="button">Play again</button><button class="button secondary" type="button" data-show-levels>Choose another level</button></div>
+      </section>
+    </main>
+
+    <script>
+      window.MATH_GAME_CONFIG = {
+        grade: 'Third Grade',
+        levels: [
+          { id: 1, title: 'Two-digit addition', description: 'Add two numbers from 10 to 99.', operator: '+', left: [10, 99], right: [10, 99] },
+          { id: 2, title: 'Two-digit subtraction', description: 'Subtract two numbers from 10 to 99.', operator: '-', left: [10, 99], right: [10, 99] },
+          { id: 3, title: 'Three-digit addition', description: 'Add two numbers from 100 to 999.', operator: '+', left: [100, 999], right: [100, 999] },
+          { id: 4, title: 'Three-digit subtraction', description: 'Subtract two numbers from 100 to 999.', operator: '-', left: [100, 999], right: [100, 999] },
+          { id: 5, title: 'Single-digit multiplication', description: 'Multiply two numbers from 0 to 9. Includes two play modes.', operator: '×', left: [0, 9], right: [0, 9], special: 'times-table' },
+          { id: 6, title: 'Two digits × one digit', description: 'Multiply a number from 10–99 by a number from 0–9.', operator: '×', left: [10, 99], right: [0, 9] }
+        ]
+      };
+    </script>
+    <script src="../math-game.js"></script>
+  </body>
+</html>

@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffd966">
+    <title>Kindergarten Math Tutorials · Lucas's Math Room</title>
+    <style>
+      :root { color-scheme: light; font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; color: #29314f; background: #fff9df; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; padding: 20px; background: radial-gradient(circle at 88% 12%, #81dec7 0 8%, transparent 8.2%), linear-gradient(145deg, #fffdf5, #ffefb9); }
+      main { width: min(980px, 100%); margin: 0 auto; }
+      .back { display: inline-block; margin-bottom: 32px; color: inherit; font-weight: 900; text-decoration: none; }
+      .back:hover { text-decoration: underline; }
+      .eyebrow { margin: 0 0 8px; color: #b26f00; font-size: .8rem; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(2.7rem, 9vw, 5.8rem); line-height: .95; letter-spacing: -.055em; }
+      .intro { max-width: 700px; margin: 18px 0 28px; color: #6a6759; font-size: 1.08rem; line-height: 1.55; }
+      .lesson-tabs { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+      button { padding: 12px 18px; border: 3px solid #29314f; border-radius: 999px; color: #29314f; background: #fff; box-shadow: 4px 4px 0 #29314f; font: 900 1rem inherit; cursor: pointer; }
+      button.active, button.primary { background: #ffd966; }
+      button:hover:not(:disabled) { transform: translate(-1px, -1px); }
+      button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #29314f; }
+      button:disabled { opacity: .38; cursor: not-allowed; }
+      button:focus-visible { outline: 5px solid #ed75a6; outline-offset: 4px; }
+      .lesson { padding: clamp(20px, 4vw, 38px); border: 4px solid #29314f; border-radius: 28px; background: #fff; box-shadow: 10px 11px 0 #29314f; }
+      .lesson-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+      .step-count { margin: 0; color: #6b7084; font-weight: 900; }
+      .progress { height: 16px; overflow: hidden; margin: 18px 0 28px; border: 3px solid #29314f; border-radius: 999px; background: #edeaf6; }
+      .progress span { display: block; height: 100%; background: #81dec7; transition: width 300ms ease; }
+      h2 { margin: 0 0 8px; font-size: clamp(1.7rem, 5vw, 2.7rem); letter-spacing: -.035em; }
+      .step-copy { min-height: 50px; margin: 0 0 20px; color: #676d82; font-size: 1.08rem; line-height: 1.5; }
+      .stage { display: grid; min-height: 390px; padding: clamp(18px, 4vw, 34px); border: 3px solid #29314f; border-radius: 22px; background: #fffbea; place-items: center; }
+      .groups { display: flex; width: 100%; align-items: center; justify-content: center; gap: clamp(24px, 7vw, 80px); }
+      .group { min-width: 210px; padding: 20px; border: 3px solid #29314f; border-radius: 18px; background: #e2f8f2; text-align: center; animation: arrive .45s both; }
+      .group.second { background: #fff1ad; animation-delay: .12s; }
+      .group strong { display: block; margin-bottom: 16px; font-size: 1.2rem; }
+      .sticks { display: flex; min-height: 150px; align-items: end; justify-content: center; gap: 7px; flex-wrap: wrap; }
+      .stick { position: relative; display: inline-block; width: 14px; height: 112px; border: 3px solid #29314f; border-radius: 9px; background: #62cbb2; transform: scaleY(0); transform-origin: bottom; animation: grow .35s forwards; }
+      .stick.yellow { background: #ffd34e; }
+      .stick.crossed { opacity: .38; background: #ed75a6; }
+      .stick.crossed::after { position: absolute; top: 50%; left: -9px; width: 28px; height: 4px; background: #bf3859; content: ""; transform: rotate(-48deg); }
+      .operator { font-size: 3.5rem; font-weight: 900; }
+      .combined { max-width: 720px; padding: 28px; border: 4px solid #29314f; border-radius: 24px; background: #f3d4ff; text-align: center; box-shadow: 6px 6px 0 #29314f; animation: arrive .45s both; }
+      .combined .sticks { min-height: 135px; }
+      .equation { margin: 18px 0 0; font-size: clamp(2.5rem, 8vw, 5rem); font-weight: 900; }
+      .controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 24px; }
+      .control-group { display: flex; gap: 12px; }
+      @keyframes grow { to { transform: scaleY(1); } }
+      @keyframes arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+      @media (max-width: 680px) { body { padding: 12px; } .lesson { box-shadow: 6px 7px 0 #29314f; } .groups { align-items: stretch; flex-direction: column; gap: 14px; } .operator { line-height: .7; text-align: center; } .stage { min-height: 580px; } .controls { align-items: stretch; flex-direction: column; } .control-group { justify-content: space-between; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="../">← Back to Kindergarten games</a>
+      <p class="eyebrow">Kindergarten tutorials</p>
+      <h1>Learn with sticks</h1>
+      <p class="intro">Watch sticks join together for addition or get crossed out for subtraction.</p>
+      <nav class="lesson-tabs" aria-label="Choose a tutorial">
+        <button id="addition-tab" type="button">Level 1 · 5 + 7</button>
+        <button id="subtraction-tab" type="button">Level 2 · 10 − 5</button>
+      </nav>
+
+      <section class="lesson" aria-labelledby="step-title">
+        <div class="lesson-top"><p class="step-count" id="step-count"></p><button id="auto" type="button">▶ Auto play</button></div>
+        <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+        <h2 id="step-title"></h2>
+        <p class="step-copy" id="step-copy"></p>
+        <div class="stage" id="stage" aria-live="polite"></div>
+        <div class="controls"><button id="previous" type="button">← Previous</button><div class="control-group"><button id="replay" type="button">↻ Replay</button><button class="primary" id="next" type="button">Next →</button></div></div>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        'use strict';
+        const lessons = {
+          addition: {
+            titles: ['Start with 5 sticks', 'Add 7 more sticks', 'Put the groups together', 'Count all the sticks'],
+            copies: ['Here is our first group of 5 teal sticks.', 'Here is another group with 7 yellow sticks.', 'Addition means joining both groups into one big group.', 'There are 12 sticks altogether, so 5 + 7 = 12.'],
+            render(step) {
+              if (step === 0) return group(5, '5 sticks');
+              if (step === 1) return `<div class="groups">${group(5, '5 sticks')}<span class="operator">+</span>${group(7, '7 sticks', true)}</div>`;
+              const sticks = makeSticks(5) + makeSticks(7, true);
+              return `<div class="combined"><div class="sticks">${sticks}</div>${step === 3 ? '<p class="equation">5 + 7 = 12</p>' : '<p class="equation">5 + 7</p>'}</div>`;
+            }
+          },
+          subtraction: {
+            titles: ['Start with 10 sticks', 'Take away 5 sticks', 'See what is left', 'Count the remaining sticks'],
+            copies: ['Begin with one group of 10 teal sticks.', 'To subtract 5, cross out five of the sticks.', 'The five crossed-out sticks are taken away. Five sticks remain.', 'There are 5 sticks left, so 10 − 5 = 5.'],
+            render(step) {
+              if (step === 0) return group(10, '10 sticks');
+              if (step === 1) return `<div class="combined"><div class="sticks">${makeSticks(10, false, 5)}</div><p class="equation">Cross out 5</p></div>`;
+              return `<div class="combined"><div class="sticks">${makeSticks(5)}</div>${step === 3 ? '<p class="equation">10 − 5 = 5</p>' : '<p class="equation">5 left</p>'}</div>`;
+            }
+          }
+        };
+        const stage = document.querySelector('#stage');
+        const title = document.querySelector('#step-title');
+        const copy = document.querySelector('#step-copy');
+        const count = document.querySelector('#step-count');
+        const progress = document.querySelector('#progress');
+        const previous = document.querySelector('#previous');
+        const next = document.querySelector('#next');
+        const auto = document.querySelector('#auto');
+        const tabs = { addition: document.querySelector('#addition-tab'), subtraction: document.querySelector('#subtraction-tab') };
+        let lessonName = new URLSearchParams(location.search).get('lesson') === 'subtraction' ? 'subtraction' : 'addition';
+        let step = 0;
+        let timer = null;
+
+        function makeSticks(total, yellow = false, crossed = 0) {
+          return Array.from({ length: total }, (_, index) => `<i class="stick${yellow ? ' yellow' : ''}${index < crossed ? ' crossed' : ''}" style="animation-delay:${index * 45}ms"></i>`).join('');
+        }
+        function group(total, label, yellow = false) { return `<article class="group${yellow ? ' second' : ''}"><strong>${label}</strong><div class="sticks">${makeSticks(total, yellow)}</div></article>`; }
+        function stopAuto() { window.clearInterval(timer); timer = null; auto.textContent = '▶ Auto play'; }
+        function render() {
+          const lesson = lessons[lessonName];
+          count.textContent = `Step ${step + 1} of 4`;
+          progress.style.width = `${(step + 1) * 25}%`;
+          title.textContent = lesson.titles[step];
+          copy.textContent = lesson.copies[step];
+          stage.innerHTML = lesson.render(step);
+          previous.disabled = step === 0;
+          next.disabled = step === 3;
+          Object.entries(tabs).forEach(([name, tab]) => { tab.classList.toggle('active', name === lessonName); tab.setAttribute('aria-current', name === lessonName ? 'true' : 'false'); });
+        }
+        function chooseLesson(name) { stopAuto(); lessonName = name; step = 0; history.replaceState(null, '', `?lesson=${name}`); render(); }
+        tabs.addition.addEventListener('click', () => chooseLesson('addition'));
+        tabs.subtraction.addEventListener('click', () => chooseLesson('subtraction'));
+        previous.addEventListener('click', () => { stopAuto(); step = Math.max(0, step - 1); render(); });
+        next.addEventListener('click', () => { stopAuto(); step = Math.min(3, step + 1); render(); });
+        document.querySelector('#replay').addEventListener('click', render);
+        auto.addEventListener('click', () => {
+          if (timer) { stopAuto(); return; }
+          if (step === 3) step = 0;
+          auto.textContent = 'Ⅱ Pause'; render();
+          timer = window.setInterval(() => { if (step === 3) { stopAuto(); return; } step += 1; render(); }, 2200);
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>

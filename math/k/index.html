@@ -17,10 +17,6 @@
       <section class="panel" id="levels-panel">
         <h2>Choose a level</h2>
         <div class="levels" id="levels"></div>
-        <div class="tutorial-links" aria-label="Kindergarten tutorials">
-          <a class="tutorial-link" href="tutorials/?lesson=addition"><span>Level 1 tutorial: 5 + 7</span><span>Watch →</span></a>
-          <a class="tutorial-link" href="tutorials/?lesson=subtraction"><span>Level 2 tutorial: 10 − 5</span><span>Watch →</span></a>
-        </div>
       </section>
 
       <section class="panel" id="setup-panel" hidden>
@@ -33,7 +29,7 @@
       </section>
 
       <section class="panel" id="game-panel" hidden>
-        <div class="game-top"><h2 id="game-title">Math Game</h2><button class="button secondary" type="button" data-show-levels>Change level</button></div>
+        <div class="game-top"><h2 id="game-title">Math Game</h2><div class="game-actions"><a class="button" id="illustration-link" href="#" hidden>See illustration</a><button class="button secondary" type="button" data-show-levels>Change level</button></div></div>
         <p class="progress" id="progress-text">Question 1 of 10</p>
         <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
         <div class="question-area"><div class="dice" id="dice" hidden aria-label="Rolling the dice">🎲</div><p class="question" id="question"></p></div>
@@ -53,8 +49,8 @@
       window.MATH_GAME_CONFIG = {
         grade: 'Kindergarten',
         levels: [
-          { id: 1, title: 'Single-digit addition', description: 'Add two numbers from 0 to 9.', operator: '+', left: [0, 9], right: [0, 9] },
-          { id: 2, title: 'Single-digit subtraction', description: 'Subtract numbers from 0 to 9. Answers stay positive.', operator: '-', left: [0, 9], right: [0, 9] }
+          { id: 1, title: 'Single-digit addition', description: 'Add two numbers from 0 to 9.', operator: '+', left: [0, 9], right: [0, 9], illustration: 'tutorials/?lesson=addition' },
+          { id: 2, title: 'Single-digit subtraction', description: 'Subtract numbers from 0 to 9. Answers stay positive.', operator: '-', left: [0, 9], right: [0, 9], illustration: 'tutorials/?lesson=subtraction' }
         ]
       };
     </script>

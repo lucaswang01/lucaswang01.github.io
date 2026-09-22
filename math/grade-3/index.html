@@ -17,10 +17,6 @@
       <section class="panel" id="levels-panel">
         <h2>Choose a level</h2>
         <div class="levels" id="levels"></div>
-        <a class="guide-banner" href="multiply-illustration/">
-          <span>Need help with Level 6? See how 23 × 4 works with dots.</span>
-          <span>View illustration →</span>
-        </a>
       </section>
 
       <section class="panel" id="setup-panel" hidden>
@@ -45,7 +41,7 @@
       </section>
 
       <section class="panel" id="game-panel" hidden>
-        <div class="game-top"><h2 id="game-title">Math Game</h2><button class="button secondary" type="button" data-show-levels>Change level</button></div>
+        <div class="game-top"><h2 id="game-title">Math Game</h2><div class="game-actions"><a class="button" id="illustration-link" href="#" hidden>See illustration</a><button class="button secondary" type="button" data-show-levels>Change level</button></div></div>
         <p class="progress" id="progress-text">Question 1 of 10</p>
         <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
         <div class="question-area"><div class="dice" id="dice" hidden aria-label="Rolling the dice">🎲</div><p class="question" id="question"></p></div>
@@ -70,7 +66,7 @@
           { id: 3, title: 'Three-digit addition', description: 'Add two numbers from 100 to 999.', operator: '+', left: [100, 999], right: [100, 999] },
           { id: 4, title: 'Three-digit subtraction', description: 'Subtract two numbers from 100 to 999.', operator: '-', left: [100, 999], right: [100, 999] },
           { id: 5, title: 'Single-digit multiplication', description: 'Multiply two numbers from 0 to 9. Includes two play modes.', operator: '×', left: [0, 9], right: [0, 9], special: 'times-table' },
-          { id: 6, title: 'Two digits × one digit', description: 'Multiply a number from 10–99 by a number from 0–9.', operator: '×', left: [10, 99], right: [0, 9] }
+          { id: 6, title: 'Two digits × one digit', description: 'Multiply a number from 10–99 by a number from 0–9.', operator: '×', left: [10, 99], right: [0, 9], illustration: 'multiply-illustration/' }
         ]
       };
     </script>

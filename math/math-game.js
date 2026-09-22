@@ -11,6 +11,7 @@
   const gamePanel = document.querySelector('#game-panel');
   const completePanel = document.querySelector('#complete-panel');
   const gameTitle = document.querySelector('#game-title');
+  const illustrationLink = document.querySelector('#illustration-link');
   const progressText = document.querySelector('#progress-text');
   const progressBar = document.querySelector('#progress-bar');
   const questionEl = document.querySelector('#question');
@@ -89,6 +90,8 @@
     hideAll();
     gamePanel.hidden = false;
     gameTitle.textContent = level.title;
+    illustrationLink.hidden = !level.illustration;
+    if (level.illustration) illustrationLink.href = level.illustration;
     nextQuestion();
   }
 

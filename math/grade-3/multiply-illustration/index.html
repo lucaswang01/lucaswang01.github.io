@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#aeb7f5">
+    <title>How to Multiply 23 × 4 · Lucas's Math Room</title>
+    <style>
+      :root { color-scheme: light; font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif; color: #29314f; background: #f2f0ff; }
+      * { box-sizing: border-box; }
+      body { min-height: 100vh; margin: 0; padding: 22px; background: radial-gradient(circle at 90% 10%, #ffd966 0 7%, transparent 7.2%), linear-gradient(145deg, #faf9ff, #dcdfff); }
+      main { width: min(1080px, 100%); margin: 0 auto; }
+      .back { display: inline-block; margin-bottom: 34px; color: inherit; font-weight: 900; text-decoration: none; }
+      .back:hover { text-decoration: underline; }
+      .eyebrow { margin: 0 0 8px; color: #616cc0; font-size: .8rem; font-weight: 900; letter-spacing: .15em; text-transform: uppercase; }
+      h1 { margin: 0; font-size: clamp(2.8rem, 9vw, 6rem); line-height: .95; letter-spacing: -.055em; }
+      .intro { max-width: 720px; margin: 18px 0 34px; color: #626982; font-size: 1.1rem; line-height: 1.55; }
+      .lesson { padding: clamp(20px, 4vw, 38px); border: 4px solid #29314f; border-radius: 28px; background: #fff; box-shadow: 10px 11px 0 #29314f; }
+      .lesson-top { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
+      .step-count { margin: 0; color: #61687d; font-weight: 900; }
+      .progress { height: 16px; overflow: hidden; margin: 18px 0 28px; border: 3px solid #29314f; border-radius: 999px; background: #edeaf6; }
+      .progress span { display: block; width: 20%; height: 100%; background: #81dec7; transition: width 350ms ease; }
+      .step-title { margin: 0 0 8px; font-size: clamp(1.7rem, 4vw, 2.6rem); letter-spacing: -.035em; }
+      .step-copy { min-height: 52px; margin: 0 0 24px; color: #626982; font-size: 1.08rem; line-height: 1.5; }
+      .stage { min-height: 430px; padding: clamp(16px, 4vw, 30px); border: 3px solid #29314f; border-radius: 22px; background: #fffbea; }
+      .groups { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; height: 100%; align-items: start; }
+      .group { padding: 14px; border: 3px solid #29314f; border-radius: 16px; background: #fff; box-shadow: 4px 4px 0 #29314f; animation: arrive .45s both; }
+      .group:nth-child(2) { animation-delay: .08s; }.group:nth-child(3) { animation-delay: .16s; }.group:nth-child(4) { animation-delay: .24s; }
+      .group-label { margin: 0 0 10px; font-size: .9rem; font-weight: 900; text-align: center; }
+      .dots { display: grid; grid-template-columns: repeat(5, 1fr); gap: 5px; justify-items: center; }
+      .dot { width: clamp(7px, 1.4vw, 13px); aspect-ratio: 1; border: 2px solid #29314f; border-radius: 50%; background: #81dec7; transform: scale(0); animation: pop .25s forwards; }
+      .dot.one { background: #ffd966; }
+      .split-line { height: 3px; margin: 9px 0; background: #ed75a6; }
+      .regroup { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; align-items: stretch; }
+      .bucket { padding: 22px; border: 4px solid #29314f; border-radius: 22px; background: #d7f5ed; text-align: center; animation: arrive .45s both; }
+      .bucket.ones { background: #fff2b7; animation-delay: .15s; }
+      .bucket-number { margin: 0; font-size: clamp(2.4rem, 7vw, 4.5rem); font-weight: 900; }
+      .bucket .dots { max-width: 330px; margin: 18px auto 0; grid-template-columns: repeat(10, 1fr); }
+      .calculation { display: grid; grid-template-columns: 1fr auto 1fr; gap: 22px; min-height: 330px; align-items: center; }
+      .calc-card { padding: 28px 16px; border: 4px solid #29314f; border-radius: 22px; background: #d7f5ed; text-align: center; box-shadow: 6px 6px 0 #29314f; animation: arrive .45s both; }
+      .calc-card:last-child { background: #fff2b7; animation-delay: .15s; }
+      .calc-card strong { display: block; font-size: clamp(2.2rem, 7vw, 4.5rem); }
+      .plus { font-size: 3rem; font-weight: 900; }
+      .breakdown { display: grid; min-height: 360px; place-items: center; text-align: center; animation: arrive .45s both; }
+      .equation { font-size: clamp(2.6rem, 9vw, 6rem); font-weight: 900; letter-spacing: -.04em; }
+      .branches { position: relative; display: grid; width: min(620px, 100%); margin: 24px auto; grid-template-columns: 1fr 1fr; gap: 55px; }
+      .branches::before, .branches::after { position: absolute; top: -22px; width: 34%; height: 3px; background: #29314f; content: ""; }
+      .branches::before { left: 16%; transform: rotate(-14deg); }.branches::after { right: 16%; transform: rotate(14deg); }
+      .branch { padding: 20px; border: 3px solid #29314f; border-radius: 18px; background: #d7f5ed; font-size: clamp(1.4rem, 4vw, 2.2rem); font-weight: 900; }
+      .branch:last-child { background: #fff2b7; }
+      .answer { display: inline-block; padding: 12px 22px; border: 4px solid #29314f; border-radius: 999px; background: #f3d4ff; font-size: clamp(2rem, 6vw, 3.8rem); font-weight: 900; box-shadow: 5px 5px 0 #29314f; }
+      .controls { display: flex; align-items: center; justify-content: space-between; gap: 14px; margin-top: 24px; }
+      .control-group { display: flex; gap: 12px; }
+      button { padding: 12px 18px; border: 3px solid #29314f; border-radius: 999px; color: #29314f; background: #aeb7f5; box-shadow: 4px 4px 0 #29314f; font: 900 1rem inherit; cursor: pointer; }
+      button.secondary { background: #fff; }
+      button:hover:not(:disabled) { transform: translate(-1px, -1px); }
+      button:active:not(:disabled) { transform: translate(3px, 3px); box-shadow: 1px 1px 0 #29314f; }
+      button:disabled { opacity: .38; cursor: not-allowed; }
+      button:focus-visible { outline: 5px solid #ed75a6; outline-offset: 4px; }
+      @keyframes pop { to { transform: scale(1); } }
+      @keyframes arrive { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+      @media (max-width: 700px) { body { padding: 12px; } .lesson { box-shadow: 6px 7px 0 #29314f; } .groups { grid-template-columns: repeat(2, 1fr); } .regroup, .calculation { grid-template-columns: 1fr; } .plus { text-align: center; } .stage { min-height: 560px; } .controls { align-items: stretch; flex-direction: column; } .control-group { justify-content: space-between; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="../">← Back to Grade 3 games</a>
+      <p class="eyebrow">Level 6 illustration</p>
+      <h1>How does 23 × 4 work?</h1>
+      <p class="intro">Follow the dots to break 23 into tens and ones, multiply each part, and put the answers back together.</p>
+
+      <section class="lesson" aria-labelledby="step-title">
+        <div class="lesson-top"><p class="step-count" id="step-count">Step 1 of 5</p><button class="secondary" id="auto" type="button">▶ Auto play</button></div>
+        <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+        <h2 class="step-title" id="step-title"></h2>
+        <p class="step-copy" id="step-copy"></p>
+        <div class="stage" id="stage" aria-live="polite"></div>
+        <div class="controls">
+          <button class="secondary" id="previous" type="button">← Previous</button>
+          <div class="control-group"><button id="replay" type="button">↻ Replay step</button><button id="next" type="button">Next →</button></div>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      (() => {
+        'use strict';
+        const titles = ['Make 4 groups of 23', 'Split each 23 into 20 and 3', 'Put the tens and ones together', 'Multiply each part', 'Add the parts for the answer'];
+        const copies = [
+          '23 × 4 means four equal groups. Each group starts with 23 dots.',
+          'In every group, separate 23 into 20 teal dots and 3 yellow dots.',
+          'Now we can see four groups of 20 and four groups of 3.',
+          'Four groups of 20 make 80. Four groups of 3 make 12.',
+          'Break 23 into 20 + 3, multiply both parts by 4, and add 80 + 12 to get 92.'
+        ];
+        const stage = document.querySelector('#stage');
+        const title = document.querySelector('#step-title');
+        const copy = document.querySelector('#step-copy');
+        const count = document.querySelector('#step-count');
+        const progress = document.querySelector('#progress');
+        const previous = document.querySelector('#previous');
+        const next = document.querySelector('#next');
+        const auto = document.querySelector('#auto');
+        let step = 0;
+        let timer = null;
+
+        function dots(total, split = false, allOnes = false) {
+          return Array.from({ length: total }, (_, index) => `<i class="dot${allOnes || (split && index >= 20) ? ' one' : ''}" style="animation-delay:${index * 12}ms"></i>`).join('');
+        }
+        function groups(split = false) {
+          return `<div class="groups">${Array.from({ length: 4 }, (_, index) => `<article class="group"><p class="group-label">Group ${index + 1}: 23</p><div class="dots">${dots(23, split)}</div>${split ? '<div class="split-line"></div><p class="group-label">20 + 3</p>' : ''}</article>`).join('')}</div>`;
+        }
+        function renderStage() {
+          if (step === 0) return groups();
+          if (step === 1) return groups(true);
+          if (step === 2) return `<div class="regroup"><article class="bucket"><p class="bucket-number">4 groups of 20</p><div class="dots">${dots(80)}</div></article><article class="bucket ones"><p class="bucket-number">4 groups of 3</p><div class="dots">${dots(12, false, true)}</div></article></div>`;
+          if (step === 3) return '<div class="calculation"><article class="calc-card"><strong>20 × 4 = 80</strong><span>Multiply the tens</span></article><span class="plus">+</span><article class="calc-card"><strong>3 × 4 = 12</strong><span>Multiply the ones</span></article></div>';
+          return '<div class="breakdown"><div class="equation">23 × 4</div><div class="branches"><div class="branch">20 × 4<br>= 80</div><div class="branch">3 × 4<br>= 12</div></div><div class="answer">80 + 12 = 92</div></div>';
+        }
+        function render() {
+          count.textContent = `Step ${step + 1} of 5`;
+          progress.style.width = `${(step + 1) * 20}%`;
+          title.textContent = titles[step];
+          copy.textContent = copies[step];
+          stage.innerHTML = renderStage();
+          previous.disabled = step === 0;
+          next.disabled = step === 4;
+        }
+        function stopAuto() { window.clearInterval(timer); timer = null; auto.textContent = '▶ Auto play'; }
+        previous.addEventListener('click', () => { stopAuto(); step = Math.max(0, step - 1); render(); });
+        next.addEventListener('click', () => { stopAuto(); step = Math.min(4, step + 1); render(); });
+        document.querySelector('#replay').addEventListener('click', render);
+        auto.addEventListener('click', () => {
+          if (timer) { stopAuto(); return; }
+          if (step === 4) step = 0;
+          auto.textContent = 'Ⅱ Pause';
+          render();
+          timer = window.setInterval(() => {
+            if (step === 4) { stopAuto(); return; }
+            step += 1;
+            render();
+          }, 2400);
+        });
+        render();
+      })();
+    </script>
+  </body>
+</html>

@@ -54,6 +54,25 @@ h2 { margin: 0 0 20px; font-size: clamp(1.8rem, 5vw, 3rem); letter-spacing: -.03
 .level strong { display: block; margin-bottom: 7px; font-size: 1.18rem; }
 .level span { color: #505873; line-height: 1.35; }
 
+.guide-banner {
+  display: flex;
+  margin-top: 24px;
+  padding: 18px 20px;
+  border: 3px solid #29314f;
+  border-radius: 18px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  color: #29314f;
+  background: #f3d4ff;
+  box-shadow: 5px 5px 0 #29314f;
+  font-weight: 900;
+  text-decoration: none;
+}
+.guide-banner:hover { transform: translate(-2px, -2px); box-shadow: 7px 7px 0 #29314f; }
+.guide-banner:focus-visible { outline: 5px solid #ed75a6; outline-offset: 4px; }
+.guide-banner span:last-child { flex: none; }
+
 .mode-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
 .mode-card { padding: 22px; border: 3px solid #29314f; border-radius: 18px; background: #fff4bd; }
 .mode-card:last-child { background: #d7f5ed; }
@@ -103,6 +122,7 @@ select { padding: 10px 12px; border: 3px solid #29314f; border-radius: 10px; col
   body { padding: 14px; }
   .panel { box-shadow: 6px 7px 0 #29314f; }
   .levels, .mode-options { grid-template-columns: 1fr; }
+  .guide-banner { align-items: flex-start; flex-direction: column; }
   .game-top { align-items: flex-start; flex-direction: column-reverse; }
   .answer-form { flex-direction: column; }
   .answer-form input { width: 100%; }

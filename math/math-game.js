@@ -80,12 +80,30 @@
     updateAdditionCounts();
   }
 
+  function moveSubtractionStick(stickEl, destination) {
+    if (!stickEl || !destination || stickEl.parentElement === destination) return;
+    const goal = Number(destination.dataset.goal);
+    if (Number.isFinite(goal) && destination.querySelectorAll('.subtraction-stick').length >= goal) return;
+    stickEl.classList.remove('crossed', 'selected');
+    stickEl.setAttribute('aria-pressed', 'false');
+    destination.append(stickEl);
+    manipulative.querySelectorAll('.subtraction-stick').forEach(item => item.classList.remove('selected'));
+    updateSubtractionCount();
+  }
+
   function updateSubtractionCount() {
-    const crossed = manipulative.querySelectorAll('.subtraction-stick.crossed').length;
+    const workBox = manipulative.querySelector('.subtraction-work');
+    const moved = workBox.querySelectorAll('.subtraction-stick').length;
+    const crossed = workBox.querySelectorAll('.subtraction-stick.crossed').length;
     const status = manipulative.querySelector('.cross-status');
-    status.textContent = `${crossed} crossed out`;
-    status.classList.toggle('complete', crossed === state.current.right);
-    manipulative.querySelector('.stick-hint').textContent = crossed === state.current.right ? 'Great! Count the sticks that are not crossed out, then enter the answer.' : `Click ${state.current.right} ${state.current.right === 1 ? 'stick' : 'sticks'} to cross them out. Click again to undo.`;
+    const ready = moved === state.current.left;
+    status.textContent = ready ? `${crossed} crossed out` : `${moved} of ${state.current.left} sticks moved`;
+    status.classList.toggle('complete', ready && crossed === state.current.right);
+    manipulative.querySelector('.stick-hint').textContent = !ready
+      ? `First, move ${state.current.left} ${state.current.left === 1 ? 'stick' : 'sticks'} from the basket into the work bucket.`
+      : crossed === state.current.right
+        ? 'Great! Count the sticks that are not crossed out, then enter the answer.'
+        : `Now click ${state.current.right} ${state.current.right === 1 ? 'stick' : 'sticks'} to cross them out. Click again to undo.`;
   }
 
   function renderManipulative() {
@@ -113,11 +131,12 @@
       return;
     }
 
-    const sticks = Array.from({ length: state.current.left }, (_, index) => `<button class="subtraction-stick" type="button" aria-pressed="false" aria-label="Stick ${index + 1}"></button>`).join('');
+    const sticks = Array.from({ length: 10 }, (_, index) => `<button class="subtraction-stick" id="subtract-stick-${state.question}-${index}" type="button" draggable="true" aria-pressed="false" aria-label="Stick ${index + 1}"></button>`).join('');
     manipulative.innerHTML = `
-      <div class="manipulative-title"><strong>Cross out the sticks you subtract</strong></div>
+      <div class="manipulative-title"><strong>Build the starting number, then subtract</strong><button class="mini-button" type="button" data-reset-sticks>Reset sticks</button></div>
       <p class="stick-hint"></p>
-      <div class="subtraction-box">${sticks}</div>
+      <div class="stick-zone stick-bank subtraction-bank" data-zone="sub-bank" tabindex="0" aria-label="Basket with 10 sticks">${sticks}<span class="zone-label">Basket: 10 sticks</span></div>
+      <div class="stick-zone subtraction-work" data-zone="sub-work" data-goal="${state.current.left}" tabindex="0" aria-label="Subtraction work bucket"><span class="zone-label">Work bucket: move ${state.current.left} here</span></div>
       <p class="cross-status" aria-live="polite"></p>`;
     updateSubtractionCount();
   }
@@ -197,7 +216,7 @@
 
   if (manipulative) {
     manipulative.addEventListener('dragstart', event => {
-      const stickEl = event.target.closest('.counting-stick');
+      const stickEl = event.target.closest('.counting-stick, .subtraction-stick');
       if (!stickEl) return;
       event.dataTransfer.setData('text/plain', stickEl.id);
       event.dataTransfer.effectAllowed = 'move';
@@ -206,11 +225,16 @@
     manipulative.addEventListener('dragover', event => {
       if (event.target.closest('.stick-zone')) event.preventDefault();
     });
+    manipulative.addEventListener('dragend', () => {
+      manipulative.querySelectorAll('.counting-stick, .subtraction-stick').forEach(item => item.classList.remove('selected'));
+    });
     manipulative.addEventListener('drop', event => {
       const zone = event.target.closest('.stick-zone');
       if (!zone) return;
       event.preventDefault();
-      moveAdditionStick(document.getElementById(event.dataTransfer.getData('text/plain')), zone);
+      const stickEl = document.getElementById(event.dataTransfer.getData('text/plain'));
+      if (stickEl?.classList.contains('subtraction-stick')) moveSubtractionStick(stickEl, zone);
+      else moveAdditionStick(stickEl, zone);
       selectedStickId = null;
     });
     manipulative.addEventListener('click', event => {
@@ -221,9 +245,22 @@
 
       const subtractionStick = event.target.closest('.subtraction-stick');
       if (subtractionStick) {
-        const crossed = subtractionStick.classList.toggle('crossed');
-        subtractionStick.setAttribute('aria-pressed', String(crossed));
-        updateSubtractionCount();
+        if (subtractionStick.closest('.subtraction-work')) {
+          const workBox = subtractionStick.closest('.subtraction-work');
+          if (workBox.querySelectorAll('.subtraction-stick').length === state.current.left) {
+            const crossed = subtractionStick.classList.toggle('crossed');
+            subtractionStick.setAttribute('aria-pressed', String(crossed));
+            updateSubtractionCount();
+          }
+        } else {
+          manipulative.querySelectorAll('.subtraction-stick').forEach(item => item.classList.remove('selected'));
+          if (selectedStickId === subtractionStick.id) {
+            selectedStickId = null;
+          } else {
+            selectedStickId = subtractionStick.id;
+            subtractionStick.classList.add('selected');
+          }
+        }
         return;
       }
 
@@ -241,7 +278,9 @@
 
       const zone = event.target.closest('.stick-zone');
       if (zone && selectedStickId) {
-        moveAdditionStick(document.getElementById(selectedStickId), zone);
+        const selected = document.getElementById(selectedStickId);
+        if (selected?.classList.contains('subtraction-stick')) moveSubtractionStick(selected, zone);
+        else moveAdditionStick(selected, zone);
         selectedStickId = null;
       }
     });
@@ -249,7 +288,9 @@
       const zone = event.target.closest('.stick-zone');
       if (zone && selectedStickId && (event.key === 'Enter' || event.key === ' ')) {
         event.preventDefault();
-        moveAdditionStick(document.getElementById(selectedStickId), zone);
+        const selected = document.getElementById(selectedStickId);
+        if (selected?.classList.contains('subtraction-stick')) moveSubtractionStick(selected, zone);
+        else moveAdditionStick(selected, zone);
         selectedStickId = null;
       }
     });

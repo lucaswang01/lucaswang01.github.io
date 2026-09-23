@@ -115,8 +115,10 @@ select { padding: 10px 12px; border: 3px solid #29314f; border-radius: 10px; col
 .counting-stick, .subtraction-stick { position: relative; width: 13px; height: 70px; padding: 0; border: 2px solid #29314f; border-radius: 8px; background: #62cbb2; box-shadow: 2px 2px 0 #29314f; cursor: grab; touch-action: manipulation; }
 .counting-stick:nth-of-type(even), .subtraction-stick:nth-child(even) { background: #ffd34e; }
 .counting-stick.selected { outline: 5px solid #ed75a6; outline-offset: 2px; transform: translateY(-5px); }
-.subtraction-box { display: flex; min-height: 150px; padding: 26px 18px; border: 3px solid #29314f; border-radius: 16px; align-items: end; justify-content: center; gap: 9px; flex-wrap: wrap; background: #fff; }
 .subtraction-stick { width: 16px; height: 92px; cursor: pointer; }
+.subtraction-bank .subtraction-stick { cursor: grab; }
+.subtraction-stick.selected { outline: 5px solid #ed75a6; outline-offset: 2px; transform: translateY(-5px); }
+.subtraction-work { position: relative; min-height: 160px; background: #dff8f1; }
 .subtraction-stick.crossed { opacity: .42; background: #ed75a6; }
 .subtraction-stick.crossed::after { position: absolute; top: 50%; left: -9px; width: 30px; height: 4px; background: #b92e51; content: ""; transform: rotate(-50deg); }
 .cross-status { margin: 14px 0 0; color: #656b7f; font-size: 1rem; font-weight: 900; text-align: center; }

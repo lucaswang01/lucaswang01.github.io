@@ -33,6 +33,7 @@
         <p class="progress" id="progress-text">Question 1 of 10</p>
         <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
         <div class="question-area"><div class="dice" id="dice" hidden aria-label="Rolling the dice">🎲</div><p class="question" id="question"></p></div>
+        <section class="manipulative" id="manipulative" aria-label="Counting sticks" hidden></section>
         <form class="answer-form" id="answer-form"><label for="answer" class="eyebrow">Your answer</label><input id="answer" type="number" inputmode="numeric" required autocomplete="off"><button class="button" id="submit" type="submit">Submit</button></form>
         <p class="feedback" id="feedback" aria-live="polite"></p>
       </section>
@@ -49,8 +50,8 @@
       window.MATH_GAME_CONFIG = {
         grade: 'Kindergarten',
         levels: [
-          { id: 1, title: 'Single-digit addition', description: 'Add two numbers from 0 to 9.', operator: '+', left: [0, 9], right: [0, 9], illustration: 'tutorials/?lesson=addition' },
-          { id: 2, title: 'Single-digit subtraction', description: 'Subtract numbers from 0 to 9. Answers stay positive.', operator: '-', left: [0, 9], right: [0, 9], illustration: 'tutorials/?lesson=subtraction' }
+          { id: 1, title: 'Single-digit addition', description: 'Add two numbers from 0 to 9.', operator: '+', left: [0, 9], right: [0, 9], illustration: 'tutorials/?lesson=addition', manipulative: 'addition-sticks' },
+          { id: 2, title: 'Single-digit subtraction', description: 'Subtract numbers from 0 to 9. Answers stay positive.', operator: '-', left: [0, 9], right: [0, 9], illustration: 'tutorials/?lesson=subtraction', manipulative: 'subtraction-sticks' }
         ]
       };
     </script>

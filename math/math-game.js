@@ -21,9 +21,11 @@
   const submit = document.querySelector('#submit');
   const feedback = document.querySelector('#feedback');
   const animals = document.querySelector('#animals');
+  const manipulative = document.querySelector('#manipulative');
 
   const animalFriends = ['🐶', '🐱', '🐼', '🦊', '🐸', '🐨', '🐰', '🦁', '🐯', '🐵', '🦄', '🐧'];
   const state = { level: null, question: 0, current: null, mode: 'random', picked: 0, rolling: false };
+  let selectedStickId = null;
 
   function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -50,7 +52,75 @@
     if (level.operator === '-' && right > left) [left, right] = [right, left];
 
     const result = level.operator === '+' ? left + right : level.operator === '-' ? left - right : left * right;
-    return { text: `${left} ${level.operator} ${right} = ?`, result };
+    return { left, right, operator: level.operator, text: `${left} ${level.operator} ${right} = ?`, result };
+  }
+
+  function stick(id, label) {
+    return `<button class="counting-stick" id="${id}" type="button" draggable="true" aria-label="${label}"></button>`;
+  }
+
+  function updateAdditionCounts() {
+    const boxes = [...manipulative.querySelectorAll('.addition-box')];
+    boxes.forEach(box => {
+      const count = box.querySelectorAll('.counting-stick').length;
+      box.querySelector('.box-count').textContent = `${count} of ${box.dataset.goal}`;
+    });
+    const complete = boxes.every(box => box.querySelectorAll('.counting-stick').length === Number(box.dataset.goal));
+    const hint = manipulative.querySelector('.stick-hint');
+    hint.textContent = complete ? `Great! Count all ${state.current.result} sticks, then enter the answer.` : 'Drag a stick, or tap a stick and then tap a rectangle.';
+    hint.classList.toggle('complete', complete);
+  }
+
+  function moveAdditionStick(stickEl, destination) {
+    if (!stickEl || !destination || stickEl.parentElement === destination) return;
+    const goal = Number(destination.dataset.goal);
+    if (Number.isFinite(goal) && destination.querySelectorAll('.counting-stick').length >= goal) return;
+    destination.append(stickEl);
+    manipulative.querySelectorAll('.counting-stick').forEach(item => item.classList.remove('selected'));
+    updateAdditionCounts();
+  }
+
+  function updateSubtractionCount() {
+    const crossed = manipulative.querySelectorAll('.subtraction-stick.crossed').length;
+    const remaining = state.current.left - crossed;
+    const status = manipulative.querySelector('.cross-status');
+    status.textContent = `${crossed} crossed out · ${remaining} left`;
+    status.classList.toggle('complete', crossed === state.current.right);
+    manipulative.querySelector('.stick-hint').textContent = crossed === state.current.right ? `Great! ${remaining} sticks are left. Enter the answer.` : `Click ${state.current.right} ${state.current.right === 1 ? 'stick' : 'sticks'} to cross them out. Click again to undo.`;
+  }
+
+  function renderManipulative() {
+    if (!manipulative) return;
+    selectedStickId = null;
+    const kind = state.level.manipulative;
+    manipulative.hidden = !kind;
+    if (!kind) {
+      manipulative.replaceChildren();
+      return;
+    }
+
+    if (kind === 'addition-sticks') {
+      const sticks = Array.from({ length: state.current.result }, (_, index) => stick(`stick-${state.question}-${index}`, `Stick ${index + 1}`)).join('');
+      manipulative.innerHTML = `
+        <div class="manipulative-title"><strong>Build the two groups</strong><button class="mini-button" type="button" data-reset-sticks>Reset sticks</button></div>
+        <p class="stick-hint">Drag a stick, or tap a stick and then tap a rectangle.</p>
+        <div class="stick-zone stick-bank" data-zone="bank" aria-label="Stick basket" tabindex="0">${sticks}<span class="zone-label">Stick basket</span></div>
+        <div class="addition-boxes">
+          <div class="stick-zone addition-box" data-zone="left" data-goal="${state.current.left}" tabindex="0"><span class="zone-label">First group: ${state.current.left}</span><span class="box-count">0 of ${state.current.left}</span></div>
+          <span class="box-operator">+</span>
+          <div class="stick-zone addition-box" data-zone="right" data-goal="${state.current.right}" tabindex="0"><span class="zone-label">Second group: ${state.current.right}</span><span class="box-count">0 of ${state.current.right}</span></div>
+        </div>`;
+      updateAdditionCounts();
+      return;
+    }
+
+    const sticks = Array.from({ length: state.current.left }, (_, index) => `<button class="subtraction-stick" type="button" aria-pressed="false" aria-label="Stick ${index + 1}"></button>`).join('');
+    manipulative.innerHTML = `
+      <div class="manipulative-title"><strong>Cross out the sticks you subtract</strong></div>
+      <p class="stick-hint"></p>
+      <div class="subtraction-box">${sticks}</div>
+      <p class="cross-status" aria-live="polite"></p>`;
+    updateSubtractionCount();
   }
 
   function revealQuestion() {
@@ -63,6 +133,7 @@
     questionEl.hidden = false;
     submit.disabled = false;
     state.rolling = false;
+    renderManipulative();
     answer.focus();
   }
 
@@ -124,6 +195,66 @@
     button.addEventListener('click', () => chooseLevel(level));
     levelsEl.append(button);
   });
+
+  if (manipulative) {
+    manipulative.addEventListener('dragstart', event => {
+      const stickEl = event.target.closest('.counting-stick');
+      if (!stickEl) return;
+      event.dataTransfer.setData('text/plain', stickEl.id);
+      event.dataTransfer.effectAllowed = 'move';
+      stickEl.classList.add('selected');
+    });
+    manipulative.addEventListener('dragover', event => {
+      if (event.target.closest('.stick-zone')) event.preventDefault();
+    });
+    manipulative.addEventListener('drop', event => {
+      const zone = event.target.closest('.stick-zone');
+      if (!zone) return;
+      event.preventDefault();
+      moveAdditionStick(document.getElementById(event.dataTransfer.getData('text/plain')), zone);
+      selectedStickId = null;
+    });
+    manipulative.addEventListener('click', event => {
+      if (event.target.closest('[data-reset-sticks]')) {
+        renderManipulative();
+        return;
+      }
+
+      const subtractionStick = event.target.closest('.subtraction-stick');
+      if (subtractionStick) {
+        const crossed = subtractionStick.classList.toggle('crossed');
+        subtractionStick.setAttribute('aria-pressed', String(crossed));
+        updateSubtractionCount();
+        return;
+      }
+
+      const stickEl = event.target.closest('.counting-stick');
+      if (stickEl) {
+        manipulative.querySelectorAll('.counting-stick').forEach(item => item.classList.remove('selected'));
+        if (selectedStickId === stickEl.id) {
+          selectedStickId = null;
+        } else {
+          selectedStickId = stickEl.id;
+          stickEl.classList.add('selected');
+        }
+        return;
+      }
+
+      const zone = event.target.closest('.stick-zone');
+      if (zone && selectedStickId) {
+        moveAdditionStick(document.getElementById(selectedStickId), zone);
+        selectedStickId = null;
+      }
+    });
+    manipulative.addEventListener('keydown', event => {
+      const zone = event.target.closest('.stick-zone');
+      if (zone && selectedStickId && (event.key === 'Enter' || event.key === ' ')) {
+        event.preventDefault();
+        moveAdditionStick(document.getElementById(selectedStickId), zone);
+        selectedStickId = null;
+      }
+    });
+  }
 
   form.addEventListener('submit', event => {
     event.preventDefault();

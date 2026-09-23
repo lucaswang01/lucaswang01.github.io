@@ -82,11 +82,10 @@
 
   function updateSubtractionCount() {
     const crossed = manipulative.querySelectorAll('.subtraction-stick.crossed').length;
-    const remaining = state.current.left - crossed;
     const status = manipulative.querySelector('.cross-status');
-    status.textContent = `${crossed} crossed out · ${remaining} left`;
+    status.textContent = `${crossed} crossed out`;
     status.classList.toggle('complete', crossed === state.current.right);
-    manipulative.querySelector('.stick-hint').textContent = crossed === state.current.right ? `Great! ${remaining} sticks are left. Enter the answer.` : `Click ${state.current.right} ${state.current.right === 1 ? 'stick' : 'sticks'} to cross them out. Click again to undo.`;
+    manipulative.querySelector('.stick-hint').textContent = crossed === state.current.right ? 'Great! Count the sticks that are not crossed out, then enter the answer.' : `Click ${state.current.right} ${state.current.right === 1 ? 'stick' : 'sticks'} to cross them out. Click again to undo.`;
   }
 
   function renderManipulative() {
@@ -100,7 +99,7 @@
     }
 
     if (kind === 'addition-sticks') {
-      const sticks = Array.from({ length: state.current.result }, (_, index) => stick(`stick-${state.question}-${index}`, `Stick ${index + 1}`)).join('');
+      const sticks = Array.from({ length: 20 }, (_, index) => stick(`stick-${state.question}-${index}`, `Stick ${index + 1}`)).join('');
       manipulative.innerHTML = `
         <div class="manipulative-title"><strong>Build the two groups</strong><button class="mini-button" type="button" data-reset-sticks>Reset sticks</button></div>
         <p class="stick-hint">Drag a stick, or tap a stick and then tap a rectangle.</p>

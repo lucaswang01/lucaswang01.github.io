@@ -27,6 +27,7 @@
       .step-count { margin: 0; color: #6b7084; font-weight: 900; }
       .progress { height: 16px; overflow: hidden; margin: 18px 0 28px; border: 3px solid #29314f; border-radius: 999px; background: #edeaf6; }
       .progress span { display: block; height: 100%; background: #81dec7; transition: width 300ms ease; }
+      .problem-card { display: inline-block; margin: 0 0 24px; padding: 12px 22px; border: 3px solid #29314f; border-radius: 16px; background: #f3d4ff; box-shadow: 4px 4px 0 #29314f; font-size: clamp(2rem, 7vw, 3.8rem); font-weight: 900; letter-spacing: -.03em; }
       h2 { margin: 0 0 8px; font-size: clamp(1.7rem, 5vw, 2.7rem); letter-spacing: -.035em; }
       .step-copy { min-height: 50px; margin: 0 0 20px; color: #676d82; font-size: 1.08rem; line-height: 1.5; }
       .stage { display: grid; min-height: 390px; padding: clamp(18px, 4vw, 34px); border: 3px solid #29314f; border-radius: 22px; background: #fffbea; place-items: center; }
@@ -80,6 +81,7 @@
       <section class="lesson" aria-labelledby="step-title">
         <div class="lesson-top"><p class="step-count" id="step-count"></p><button id="auto" type="button">▶ Auto play</button></div>
         <div class="progress" aria-hidden="true"><span id="progress"></span></div>
+        <p class="problem-card" id="problem"></p>
         <h2 id="step-title"></h2>
         <p class="step-copy" id="step-copy"></p>
         <div class="stage" id="stage" aria-live="polite"></div>
@@ -92,6 +94,7 @@
         'use strict';
         const lessons = {
           addition: {
+            problem: '5 + 7 = ?',
             titles: ['Start with 5 sticks', 'Add 7 more sticks', 'Put the groups together', 'Count all the sticks'],
             copies: ['Here is our first group of 5 teal sticks.', 'Here is another group with 7 yellow sticks.', 'Addition means joining both groups into one big group.', 'There are 12 sticks altogether, so 5 + 7 = 12.'],
             render(step) {
@@ -102,6 +105,7 @@
             }
           },
           fingers: {
+            problem: '6 + 7 = ?',
             titles: ['Start at 6 with 7 fingers up', 'Count 7', 'Count 8', 'Count 9', 'Count 10', 'Count 11', 'Count 12', 'Count 13'],
             copies: [
               'We want to solve 6 + 7. Start at 6 and hold up seven fingers across two hands.',
@@ -122,6 +126,7 @@
             }
           },
           subtraction: {
+            problem: '10 − 5 = ?',
             titles: ['Start with 10 sticks', 'Take away 5 sticks', 'See what is left', 'Count the remaining sticks'],
             copies: ['Begin with one group of 10 teal sticks.', 'To subtract 5, cross out five of the sticks.', 'The five crossed-out sticks are taken away. Five sticks remain.', 'There are 5 sticks left, so 10 − 5 = 5.'],
             render(step) {
@@ -136,6 +141,7 @@
         const copy = document.querySelector('#step-copy');
         const count = document.querySelector('#step-count');
         const progress = document.querySelector('#progress');
+        const problem = document.querySelector('#problem');
         const previous = document.querySelector('#previous');
         const next = document.querySelector('#next');
         const auto = document.querySelector('#auto');
@@ -160,6 +166,7 @@
           const totalSteps = lesson.titles.length;
           count.textContent = `Step ${step + 1} of ${totalSteps}`;
           progress.style.width = `${(step + 1) / totalSteps * 100}%`;
+          problem.textContent = lesson.problem;
           title.textContent = lesson.titles[step];
           copy.textContent = lesson.copies[step];
           stage.innerHTML = lesson.render(step);

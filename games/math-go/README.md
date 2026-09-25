@@ -1,69 +1,70 @@
-# Math Go · Bramble Island
+# Math Go · Bramble Island RPG
 
-An original, free, single-player Grade 3 dinosaur math adventure. It is a static page: no backend, build step, account, database, analytics, advertising, paid upgrades, or remote JavaScript dependencies.
+Math Go is an original, free, single-player Grade 3 math RPG. It is a static website: no backend, account, database, analytics, advertising, remote JavaScript, paid currency, or premium tier.
 
-## Play
+## The game
 
-Open the **Games Room → Math Go**, enter the family access code, and choose a nickname and one of three dinosaur companions. Select a habitat, start a friendly challenge, pick a move, and solve the math puzzle to power it. Wrong answers leave both dinosaurs' energy unchanged and offer a hint. There are no timers.
+Move the explorer with **Arrow keys** or **WASD** (or the on-screen direction pad). The world is larger than the viewport and the camera follows the party. Each of the four regions has paths, obstacles, a ranger, two hidden supply chests, three story encounters, a repeatable roaming encounter, and a gate to the next region. Walk into an unresolved creature to begin a battle; press **E** or **Space** near characters, chests, camps, and completed creatures.
 
-Complete three challenges in each of four habitats. Each restored habitat unlocks another dinosaur and the next area. The 12-challenge campaign is replayable with new randomized math. Earn leaf coins for gear and the other starter companions. Seven original companions and four gear items are available; everything is earned through play.
+Battles take place in a separate scene. The explorer and up to two dinosaur companions face one to three enemies. Every living party member gets a turn before the enemy team responds. Correct Grade 3 math restores six points of shared magic; spells spend that magic. Wrong answers do not advance the enemy turn and provide a hint.
 
-**Base camp** offers topic selection, optional synthesized sounds, save downloads/imports, and starting a new explorer. **Field journal** records puzzles tried and first-try correct counts, counting each puzzle once even if retried. Hints do not lower a score.
+The 25 original spells cover Arcane, Leaf, Water, Fire, Stone, Air, and Sun elements. They include focused and whole-team attacks, elemental advantages, healing, regeneration, draining, shields, burns, and cooldowns. Guardians telegraph powerful whole-party moves. Winning awards XP and coins. Every 100 XP raises the team level, increases health and power, and can unlock new spells. The original campaign contains 12 story encounters and four repeatable roaming battles; the level cap is 20.
+
+All seven original dinosaurs and four gear items are earned through play. The explorer is always present; collected dinosaurs can be swapped into the two companion slots. No real money is accepted.
 
 ## Grade 3 practice
 
 - Two- and three-digit addition and nonnegative subtraction.
 - Single-digit multiplication and two-digit × single-digit multiplication.
-- Division facts with whole-number answers.
-- Equal fraction pieces, elapsed time in minutes, and rectangle area.
+- Exact division facts.
+- Equal fraction pieces, quarter-hour elapsed time, and rectangular area.
 
-Choose one topic or mixed practice. This first version is a finite adventure with randomized questions, not an adaptive curriculum, multiplayer service, or full commercial-game replacement. There are no online interactions with strangers.
+Choose one topic or mixed practice at Base Camp. “Fraction pieces” is a focused missing-parts activity, not a complete Grade 3 fractions curriculum. The game is low-pressure practice and does not replace teaching.
 
-## Saves and the access gate
+## Saves and family access
 
-The family code is Base64-encoded in `app.mjs`. **This is a convenience gate, not secure authentication.** A static client-side code can be decoded or bypassed. Never use this design to protect sensitive information.
+The family access code is Base64-encoded in `app.mjs`. This is a convenience gate, **not secure authentication**: browser code is inspectable. Do not use it to protect sensitive data.
 
-Progress autosaves to `localStorage` under `math-go-save-v1`; access is remembered for the browser session. A JSON export contains only the explorer nickname and game state, including a current challenge. Use a nickname instead of personal information. Export regularly: clearing site data, switching browsers, or private browsing may remove the browser copy. There is one autosave slot per browser/origin, so use separate JSON files for multiple children.
+Version 2 progress autosaves to `localStorage` under `math-go-save-v2`. Existing Version 1 saves are migrated without losing completed encounters, XP, coins, companions, equipment, settings, or practice statistics. An unfinished Version 1 menu battle returns safely to the trail because the new battle state is structurally different. The legacy browser entry is left in place as a fallback.
 
-Browsers cannot silently write to arbitrary files. Download/upload is the portable JSON workflow, not a server file or database. Import validates the schema, version, IDs, ranges, progression, topic statistics, and saved-question math; no imported strings are executed. Imports over 100 KB are rejected. The current adventure is replaced only after a confirmation; the dialog offers a backup download first. An unreadable browser save is preserved until the user explicitly chooses to replace it. Storage failures show a warning; another-tab changes suspend this tab's autosave so it cannot blindly overwrite the newer save.
+Base Camp can download or upload a portable JSON save. Use a nickname, not personal information. Imports strictly validate the schema, IDs, bounds, progression, statistics, party state, spell cooldowns, combat values, and saved math; imported strings are never executed. The current browser game is replaced only after confirmation. Another-tab changes pause autosave in the older tab, and storage failures show a download warning.
 
-The save format is `math-go`, version `1`. Since this is a local family game, JSON validation is for safety and consistency, not anti-cheating or tamper-proofing.
+## Development and tests
 
-## Develop and test
-
-Serve the repository with any static HTTP server, for example from the repository root:
+Serve the repository over HTTP because the game uses ES modules:
 
 ```sh
 python3 -m http.server 8000
 ```
 
-Then visit `http://localhost:8000/games/math-go/`. Use HTTP rather than opening `index.html` as a `file://` URL because the game uses ES modules. The existing GitHub Pages host serves it without a build step.
+Open `http://localhost:8000/games/math-go/`.
 
-Pure game-rule tests (Node.js 18+; no packages):
-
-```sh
-node --test games/math-go/tests/core.test.mjs
-```
-
-Browser regression tests use Playwright and Chrome. See the test script for local runtime discovery; set `CHROME_PATH` when Chrome is installed elsewhere:
+Rules and walkable-world tests need only Node.js 18+:
 
 ```sh
-node games/math-go/tests/browser-smoke.mjs
+node --test games/math-go/tests/rpg-core.test.mjs games/math-go/tests/world.test.mjs
 ```
+
+The real-browser RPG suite uses Playwright plus Chrome and covers keyboard movement into an encounter, party turns, math/mana, spells, targeting, level rewards, migration, file saves, mobile controls, and storage conflicts:
+
+```sh
+node games/math-go/tests/rpg-browser.mjs
+```
+
+The earlier Version 1 engine and tests remain in `core.mjs` and `tests/core.test.mjs` as the trusted question generator and migration reference.
 
 ## Files
 
-- `index.html`, `style.css`, `theme.css`: responsive game shell and styling.
-- `app.mjs`: UI, encoded gate, autosave, import/export, synthesized sound.
-- `core.mjs`: deterministic-testable math, battles, progression, strict save normalization.
-- `art.mjs`: original code-native SVG dinosaurs, explorer, scenery, and fallback map.
-- `assets/island.webp`: original generated storybook island artwork, optimized for the web.
-- `tests/`: rules and real-browser regression tests.
+- `app.mjs`, `rpg.css`: game interface, access gate, saves, menus, battles, and responsive controls.
+- `world.mjs`: original canvas overworlds, camera, movement, collisions, roaming encounters, companions, interactions, and touch controls.
+- `rpg-core.mjs`: immutable RPG rules, progression, combat, spells, strict saves, and Version 1 migration.
+- `core.mjs`: Grade 3 question generation and original Version 1 validation.
+- `art.mjs`: original SVG explorer, dinosaurs, and scenery.
+- `assets/island.webp`: original generated island artwork used on the entrance screen.
+- `RESEARCH.md`: verified sources, unavailable-video disclosure, and design mapping.
 
-## Research and original art
+## Research and originality
 
-Researched Prodigy's official [game overview](https://www.prodigygame.com/main-en/blog/what-is-prodigy-math-game) and [battle guide](https://prodigygame.zendesk.com/hc/en-us/articles/12910978061844-Battling-in-Prodigy-Math). The broad inspiration is math-powered turn-based challenges, exploration, collectible companions, and earned rewards. Math Go has its own setting, characters, art, wording, and rules; it is not affiliated with Prodigy and uses none of its assets.
+See [RESEARCH.md](RESEARCH.md) for the source-by-source notes. The mechanics research used Prodigy’s current official battle FAQ, official detailed battle guide, official pet-team guide, and official exploration overview. The official battle video and a longer YouTube walkthrough were located but could not be fetched or transcribed, so no visual claims are attributed to them.
 
-The island backdrop was created with the imagegen skill/tool, then converted from PNG to WebP. The dinosaur characters and battle scenes are original editable SVG, not generated sprite sheets. Island generation prompt:
-
-> Use case: illustration-story. Asset type: original background art for a children's browser dinosaur math adventure titled Math Go. Create a wide 3:2 illustrated island map with no text, no letters, no numbers, no UI, no watermark, no characters. Viewpoint: inviting top-down three-quarter storybook video game map, polished hand-painted gouache with softly shaded dimensional forms and crisp readable silhouettes. An island surrounded by turquoise shallow ocean, sandy rim, lush emerald fern forest lower left, a curving blue river and small waterfall in the center, rose-violet crystal groves lower right, a high warm golden mountain with a glowing ancient sun shrine upper right. Small winding ochre paths connect these four regions; leave open clearings in those regions for our interactive map buttons. Scattered tiny ferns, soft broad-leaf tropical trees, stones, lily pads, a little wooden bridge. Cozy adventurous afternoon lighting, rich greens and teal, honey yellow highlights. Designed for ages 7–10, original art, no resemblance to any commercial game's map, no existing intellectual property.
+Math Go borrows broad RPG conventions—walkable exploration, party turns, mana, elemental strengths, cooldowns, experience, and collectible companions. Its Bramble Island setting, story, characters, dinosaur art, map art, spell names, formulas, balance, UI, and code are original. It is not affiliated with Prodigy and uses none of its assets.

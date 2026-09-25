@@ -12,9 +12,11 @@ The official [Select Pets for your Battle Team](https://prodigygame.zendesk.com/
 
 Prodigy's official [educator overview](https://www.prodigygame.com/main-en/nea) connects exploration, quests, math battles, rewards, and rescued pets. It also describes adaptive instruction and online social play. Math Go intentionally implements a smaller, single-player Grade 3 adventure. It does not claim to reproduce Prodigy's curriculum breadth, adaptive placement, multiplayer systems, live events, or teacher services.
 
-## Video access limits
+## Video review
 
-The official battle guide embeds [this battle walkthrough](https://www.youtube.com/watch?v=bn8MsKYc100). A [longer gameplay video](https://www.youtube.com/watch?v=Ov_H3ZuKBMA) was also provided as a reference. Direct requests for both YouTube pages failed, and the official video's privacy-enhanced embed could not be fetched. Searches for the exact video IDs did not return an accessible transcript. No footage or transcript from either video was reviewed, and no visual observations are attributed to them. The concrete findings above come from accessible, primary written documentation.
+The official battle guide embeds [this battle walkthrough](https://www.youtube.com/watch?v=bn8MsKYc100). Direct online requests initially failed, but the user later supplied a local 95-second copy that was reviewed visually from beginning to end. It demonstrates a wide scenic battlefield, the full player and enemy teams remaining visible, a compact bottom spell dock, explicit target selection, individual party turns, weakness and health displays, spell-specific impact animation, floating damage, and attack categories such as focused, area, multi-hit, and random-target actions. Its math screen temporarily interrupts the battle and returns with a visible magic-refill transition. The video is a battle-system feature overview; it does not demonstrate overworld keyboard movement, encounter triggering, campaign progression, or XP leveling.
+
+A [longer gameplay video](https://www.youtube.com/watch?v=Ov_H3ZuKBMA) was also located, but it was not accessible and no transcript was available. No claims are attributed to that footage.
 
 ## Math Go implementation decisions
 

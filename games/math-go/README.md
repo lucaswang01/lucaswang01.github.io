@@ -6,7 +6,7 @@ Math Go is an original, free, single-player Grade 3 math RPG. It is a static web
 
 Move the explorer with **Arrow keys** or **WASD** (or the on-screen direction pad). The world is larger than the viewport and the camera follows the party. Each of the four regions has paths, obstacles, a ranger, two hidden supply chests, three story encounters, a repeatable roaming encounter, and a gate to the next region. Walk into an unresolved creature to begin a battle; press **E** or **Space** near characters, chests, camps, and completed creatures.
 
-Battles take place in a separate scene. The explorer and up to two dinosaur companions face one to three enemies. Every living party member gets a turn before the enemy team responds. Correct Grade 3 math restores six points of shared magic; spells spend that magic. Wrong answers do not advance the enemy turn and provide a hint.
+Battles take place in a separate full-screen nature arena. The explorer and up to two dinosaur companions face one to three enemies. Every living party member gets a turn before the enemy team responds. Each turn presents a compact four-card spell dock: choose a spell, then click a glowing valid target to cast it. Element-specific projectiles, particles, hit reactions, and floating results make the action readable. Correct Grade 3 math restores six points of shared magic; spells spend that magic. Wrong answers do not advance the enemy turn and provide a hint.
 
 The 25 original spells cover Arcane, Leaf, Water, Fire, Stone, Air, and Sun elements. They include focused and whole-team attacks, elemental advantages, healing, regeneration, draining, shields, burns, and cooldowns. Guardians telegraph powerful whole-party moves. Winning awards XP and coins. Every 100 XP raises the team level, increases health and power, and can unlock new spells. The original campaign contains 12 story encounters and four repeatable roaming battles; the level cap is 20.
 
@@ -65,6 +65,6 @@ The earlier Version 1 engine and tests remain in `core.mjs` and `tests/core.test
 
 ## Research and originality
 
-See [RESEARCH.md](RESEARCH.md) for the source-by-source notes. The mechanics research used Prodigy’s current official battle FAQ, official detailed battle guide, official pet-team guide, and official exploration overview. The official battle video and a longer YouTube walkthrough were located but could not be fetched or transcribed, so no visual claims are attributed to them.
+See [RESEARCH.md](RESEARCH.md) for the source-by-source notes. The mechanics research used Prodigy’s current official battle FAQ, official detailed battle guide, official pet-team guide, and official exploration overview. The official battle video could not initially be fetched online; a user-supplied local copy was later reviewed visually to study battle staging, compact spell selection, explicit targeting, and cast feedback. No artwork or interface assets were copied from it.
 
 Math Go borrows broad RPG conventions—walkable exploration, party turns, mana, elemental strengths, cooldowns, experience, and collectible companions. Its Bramble Island setting, story, characters, dinosaur art, map art, spell names, formulas, balance, UI, and code are original. It is not affiliated with Prodigy and uses none of its assets.

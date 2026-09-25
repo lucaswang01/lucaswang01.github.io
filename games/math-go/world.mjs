@@ -3,10 +3,10 @@ import { dinoArt, heroArt } from './art.mjs';
 
 const REGION_IDS = ['fern', 'river', 'crystal', 'summit'];
 const THEMES = {
-  fern: { name: 'Fernwood Trail', ground: '#94b875', light: '#c3d89a', dark: '#6f9b63', leaf: '#347457', leafLight: '#5d9866', path: '#d9c79b', water: '#4d9fa0', glow: '#cfed91' },
-  river: { name: 'Ripple River', ground: '#95bd94', light: '#c6dec0', dark: '#78a78a', leaf: '#327a73', leafLight: '#59a48c', path: '#d9ccb2', water: '#459bad', glow: '#a6e9ec' },
-  crystal: { name: 'Crystal Hollow', ground: '#99a59e', light: '#c2c8b8', dark: '#778f8b', leaf: '#536e78', leafLight: '#79949e', path: '#c8c2bb', water: '#7189b7', glow: '#e0beff' },
-  summit: { name: 'Sunstone Summit', ground: '#b6b782', light: '#ded5a4', dark: '#939b73', leaf: '#6e8860', leafLight: '#9ea875', path: '#e4cca0', water: '#88b4b6', glow: '#ffe49c' },
+  fern: { name: 'Fernwood Trail', ground: '#7edb69', light: '#b4ee7f', dark: '#3ca85e', leaf: '#168a61', leafLight: '#55ca72', path: '#ffe2a6', water: '#20cce0', glow: '#e6ff78', canopy: ['#54c96f', '#74d956', '#e071bd', '#55bee2'] },
+  river: { name: 'Ripple River', ground: '#72d99a', light: '#a9efaa', dark: '#2aa07f', leaf: '#087f78', leafLight: '#45cba2', path: '#ffe1ae', water: '#15cae2', glow: '#8dffff', canopy: ['#3fc59d', '#55cf79', '#63bee5', '#e58ac7'] },
+  crystal: { name: 'Crystal Hollow', ground: '#75c9ac', light: '#a9e3ba', dark: '#398e88', leaf: '#396f91', leafLight: '#718ed2', path: '#ead7be', water: '#3f9fe1', glow: '#f3b4ff', canopy: ['#5b93d4', '#7f7ed1', '#bd70ca', '#49b69b'] },
+  summit: { name: 'Sunstone Summit', ground: '#a8d96d', light: '#e2ec89', dark: '#72aa58', leaf: '#718e42', leafLight: '#d3bd57', path: '#ffe0a0', water: '#43bfd1', glow: '#fff078', canopy: ['#a5c84f', '#e6b952', '#e98772', '#7cbf63'] },
 };
 
 const TREES = [
@@ -19,6 +19,8 @@ const TREES = [
   [935, 904, 1.5], [1165, 938, 1.4], [1409, 908, 1.65],
 ];
 const ROCKS = [[192, 420, 32], [429, 244, 26], [585, 834, 31], [923, 323, 29], [1226, 839, 41], [1418, 618, 32]];
+const BUSHES = [[165, 205, 1.1], [555, 128, .9], [746, 446, 1.15], [1045, 210, .95], [1320, 605, 1.2], [238, 895, 1], [820, 875, .85], [1450, 850, 1.1]];
+const FLOWER_PATCHES = [[280, 255], [740, 175], [1180, 150], [185, 525], [715, 620], [1010, 760], [1380, 430], [435, 885]];
 const DINO_IDS = { fern: ['sprig', 'pebble', 'breeze'], river: ['brook', 'sprig', 'bloom'], crystal: ['pebble', 'bloom', 'crystal'], summit: ['breeze', 'crystal', 'ember'] };
 const RANGER_NAMES = { fern: 'Ranger Rowan', river: 'Ranger Marina', crystal: 'Ranger Flint', summit: 'Ranger Sol' };
 const ENCOUNTER_NAMES = {
@@ -125,22 +127,42 @@ function label(ctx, text, x, y, { color = '#f9f5db', background = '#243d34e8', s
 
 function drawTree(ctx, x, y, scale, theme) {
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
-  ellipse(ctx, 9, 4, 54, 17, '#294d3630');
-  line(ctx, [[0, 1], [-2, -61]], '#715c43', 15);
-  line(ctx, [[-1, -32], [-29, -58]], '#715c43', 7);
-  line(ctx, [[0, -41], [27, -70]], '#715c43', 6);
-  [[-29, -62, 35, 29], [27, -69, 39, 33], [0, -91, 41, 33], [-3, -47, 43, 29]].forEach(([a,b,c,d]) => ellipse(ctx,a,b,c,d,theme.leaf));
-  ellipse(ctx, -13, -99, 28, 17, theme.leafLight); ellipse(ctx, -35, -70, 19, 15, theme.leafLight);
-  line(ctx, [[-30,-91],[-14,-98],[0,-96]], '#d5e5a644', 5);
+  const canopy = theme.canopy[Math.abs(Math.floor(x / 90 + y / 130)) % theme.canopy.length];
+  ellipse(ctx, 8, 5, 59, 18, '#1b603b38');
+  line(ctx, [[0, 3], [-2, -63]], '#74442d', 21);
+  line(ctx, [[-2, -31], [-31, -58]], '#74442d', 9);
+  line(ctx, [[0, -42], [29, -72]], '#74442d', 8);
+  line(ctx, [[-8, -5], [-7, -58]], '#b96a3c', 7);
+  const puffs = [[-34,-62,36,31],[30,-68,41,35],[2,-96,43,37],[-4,-43,46,31],[-52,-89,27,25],[48,-96,29,27]];
+  ctx.strokeStyle='#176342';ctx.lineWidth=5;
+  puffs.forEach(([a,b,c,d], index) => { ctx.fillStyle=index%3===0?theme.leafLight:canopy;ctx.beginPath();ctx.ellipse(a,b,c,d,0,0,Math.PI*2);ctx.fill();ctx.stroke(); });
+  ellipse(ctx, -15, -105, 24, 13, '#ffffff35'); ellipse(ctx, -42, -71, 14, 10, '#ffffff2e');
+  for(let i=0;i<5;i++) ellipse(ctx,-48+i*22,-53-(i%2)*46,2.7,3.6,i%2?'#fff0a2':'#f3a4cb');
   ctx.restore();
 }
 
 function drawRock(ctx, x, y, size, regionId) {
   const purple = regionId === 'crystal';
   ellipse(ctx, x + 3, y + 6, size, size * .4, '#253c382d');
-  ctx.fillStyle = purple ? '#848da2' : '#919b86'; ctx.beginPath();
+  ctx.fillStyle = purple ? '#8e8ed0' : '#819f85'; ctx.strokeStyle='#315d55';ctx.lineWidth=3;ctx.beginPath();
   [[-1,-.8],[.67,-.45],[.91,.15],[.5,.48],[-.65,.32],[-.91,-.06]].forEach(([a,b],i) => i ? ctx.lineTo(x+a*size,y+b*size) : ctx.moveTo(x+a*size,y+b*size)); ctx.closePath(); ctx.fill();
-  ctx.fillStyle = purple ? '#b7bed0' : '#bac3a7'; ctx.beginPath(); ctx.moveTo(x-size, y);ctx.lineTo(x-size*.25,y-size*.75);ctx.lineTo(x+size*.3,y-size*.27);ctx.closePath();ctx.fill();
+  ctx.stroke();ctx.fillStyle = purple ? '#d3c9f2' : '#c7dfa7'; ctx.beginPath(); ctx.moveTo(x-size, y);ctx.lineTo(x-size*.25,y-size*.75);ctx.lineTo(x+size*.3,y-size*.27);ctx.closePath();ctx.fill();
+}
+
+function drawBush(ctx,x,y,scale,theme) {
+  ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ellipse(ctx,0,8,45,13,'#1d684033');
+  ctx.fillStyle=theme.leafLight;ctx.strokeStyle='#26714f';ctx.lineWidth=4;
+  [[-28,-3,25,22],[0,-15,31,29],[31,-2,25,23],[-5,5,39,24]].forEach(([bx,by,rx,ry])=>{ctx.beginPath();ctx.ellipse(bx,by,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.stroke();});
+  [[-25,-9],[1,-25],[28,-10],[-2,4]].forEach(([bx,by],index)=>ellipse(ctx,bx,by,5,3,index%2?'#9fea7c':'#d9f39c'));
+  ctx.restore();
+}
+
+function drawFlowerPatch(ctx,x,y,theme) {
+  for(let i=0;i<5;i++) {
+    const ox=(i-2)*9,oy=Math.abs(i-2)*2;line(ctx,[[x+ox,y],[x+ox+(i%2?3:-2),y-17-oy]],theme.dark,2);
+    const color=i%3===0?'#ff85bd':i%3===1?'#ffe278':'#b4ecff';
+    ellipse(ctx,x+ox-3,y-18-oy,4,3,color);ellipse(ctx,x+ox+3,y-18-oy,4,3,color);ellipse(ctx,x+ox,y-22-oy,3,4,color);ellipse(ctx,x+ox,y-18-oy,2,2,'#fff5a7');
+  }
 }
 
 function drawCrystal(ctx, x, y, size = 1) {
@@ -166,26 +188,32 @@ function drawCamp(ctx, x, y, theme) {
 function makeGround(regionId) {
   const ground = document.createElement('canvas'); ground.width = 1600; ground.height = 1000;
   const ctx = ground.getContext('2d'); const theme = THEMES[regionId]; const rng = seeded(REGION_IDS.indexOf(regionId) * 1293 + 541);
-  ctx.fillStyle = theme.ground; ctx.fillRect(0, 0, 1600, 1000);
-  for (let i = 0; i < 90; i++) ellipse(ctx, rng()*1600, rng()*1000, 35+rng()*100, 18+rng()*55, i%3 ? `${theme.light}25` : `${theme.dark}1c`);
+  ctx.fillStyle = theme.water; ctx.fillRect(0, 0, 1600, 1000);
+  for(let i=0;i<50;i++){const x=rng()*1600,y=rng()*1000;line(ctx,[[x,y],[x+18+rng()*22,y+2],[x+37+rng()*20,y]],'#d5ffff75',3);}
+  rounded(ctx,14,15,1572,982,82,'#804d32');
+  rounded(ctx,19,6,1562,966,76,'#ba6e42');
+  rounded(ctx,27,-4,1546,962,69,theme.ground);
+  ctx.strokeStyle='#d7f195';ctx.lineWidth=7;ctx.beginPath();ctx.roundRect(31,2,1538,949,64);ctx.stroke();
+  for (let i = 0; i < 120; i++) ellipse(ctx, 35+rng()*1530, 20+rng()*925, 30+rng()*90, 14+rng()*42, i%3 ? `${theme.light}2f` : `${theme.dark}1c`);
   // Broad interconnecting paths make exploration legible without forcing a single corridor.
   const paths = [[[95,775],[230,760],[470,760],[675,710],[833,710],[1000,616],[1200,570],[1450,500]], [[470,760],[460,625],[535,470],[610,238],[390,180]], [[1000,616],[970,520],[1130,423],[1230,270]], [[1100,602],[1110,780]], [[230,760],[260,620]]];
-  paths.forEach(points=> { line(ctx,points,`${theme.dark}65`,92);line(ctx,points,theme.path,77);line(ctx,points,`${theme.light}4d`,55); });
-  for(let i=0;i<150;i++) {
+  paths.forEach(points=> { line(ctx,points,'#9e653f',104);line(ctx,points,`${theme.dark}aa`,96);line(ctx,points,theme.path,82);line(ctx,points,'#fff2c36b',60); });
+  for(let i=0;i<190;i++) {
     const x=rng()*1510+45,y=rng()*900+65;
-    ctx.globalAlpha=.4;ellipse(ctx,x,y,1+rng()*3,1+rng()*1.5,theme.dark);ctx.globalAlpha=1;
+    ctx.globalAlpha=.5;ellipse(ctx,x,y,1+rng()*3,1+rng()*1.5,i%5?theme.dark:'#fff6a8');ctx.globalAlpha=1;
   }
   if(regionId==='river') {
-    rounded(ctx,743,-20,174,1050,72,'#738f7875');rounded(ctx,758,-20,144,1050,65,theme.water);
-    for(let i=0;i<28;i++) { const x=778+rng()*85,y=rng()*1000;line(ctx,[[x,y],[x+14,y+2],[x+25,y]],'#c6f0ec70',2); }
+    rounded(ctx,735,-20,190,1050,72,'#8d5739');rounded(ctx,745,-20,170,1050,68,'#bd7546');rounded(ctx,758,-20,144,1050,65,theme.water);
+    for(let i=0;i<34;i++) { const x=771+rng()*102,y=rng()*1000;line(ctx,[[x,y],[x+14,y+2],[x+25,y]],'#d8ffffb5',3); }
+    for(let i=0;i<14;i++){const x=770+rng()*105,y=40+rng()*920;ellipse(ctx,x,y,10+rng()*8,5+rng()*3,i%2?'#75c85f':'#59ad64');ellipse(ctx,x+2,y-2,3,3,'#ffe37b');}
     rounded(ctx,735,637,190,146,5,'#75664c');
     for(let i=0;i<12;i++) rounded(ctx,737+i*15.5,640,14,140,2,i%2?'#c4a16d':'#d3b883');
     line(ctx,[[729,640],[931,640]],'#796345',9);line(ctx,[[729,780],[931,780]],'#796345',9);
     [742,794,848,914].forEach(x=> {rounded(ctx,x-4,627,8,25,2,'#69563e');rounded(ctx,x-4,766,8,25,2,'#69563e');});
     label(ctx,'RIVER CROSSING',831,613,{size:11,background:'#286a66d9'});
   } else if(regionId==='fern') {
-    ellipse(ctx,900,180,113,81,'#658e6355');ellipse(ctx,900,180,101,73,theme.water);ellipse(ctx,890,170,87,61,'#65b6ab');
-    [[855,164],[935,191],[884,215]].forEach(([x,y])=>{ellipse(ctx,x,y,11,5,'#b4ca79');ellipse(ctx,x+2,y-2,4,3,'#edd6b2');});
+    ellipse(ctx,900,180,118,86,'#8c573e');ellipse(ctx,900,176,108,78,'#be7245');ellipse(ctx,900,168,101,73,theme.water);ellipse(ctx,890,160,87,61,'#60e0df');
+    [[855,154],[935,181],[884,205]].forEach(([x,y])=>{ellipse(ctx,x,y,13,6,'#68c960');ellipse(ctx,x+2,y-3,4,3,'#ffe28b');});
   } else if(regionId==='crystal') {
     rounded(ctx,742,78,146,287,42,'#687b8470');rounded(ctx,763,99,104,244,26,'#506778');
     for(let i=0;i<11;i++) ellipse(ctx,780+rng()*61,110+rng()*212,3,2,'#b9dbed88');
@@ -195,15 +223,14 @@ function makeGround(regionId) {
   ellipse(ctx,1230,280,123,77,'#30493823');ellipse(ctx,1230,280,111,67,`${theme.path}cc`);
   ctx.strokeStyle = '#f7edd27a';ctx.lineWidth=4;ctx.beginPath();ctx.ellipse(1230,280,95,54,0,0,Math.PI*2);ctx.stroke();
   for(let i=0;i<10;i++){ const a=i*Math.PI/5;drawRock(ctx,1230+Math.cos(a)*113,280+Math.sin(a)*69,12,regionId); }
-  for(let i=0;i<260;i++) {
+  for(let i=0;i<310;i++) {
     const x=rng()*1490+50,y=rng()*885+75;
     if(!canMove(regionId,x,y,3) || paths.some(points=>points.some(([px,py])=>Math.hypot(x-px,y-py)<80))) continue;
-    line(ctx,[[x-4,y],[x-7,y-7],[x,y-2],[x+5,y-9]],`${theme.dark}ae`,2);
-    if(i%4===0){ellipse(ctx,x,y-10,3,3,i%8===0?'#f5d480':'#ebc5bb');ellipse(ctx,x+4,y-7,2,2,'#f4e9c1');}
+    line(ctx,[[x-4,y],[x-7,y-8],[x,y-2],[x+5,y-10]],`${theme.dark}c7`,2);
+    if(i%4===0){ellipse(ctx,x,y-11,3.5,3.5,i%8===0?'#ffe16d':'#ff91c7');ellipse(ctx,x+5,y-8,2.5,2.5,'#eefdc7');}
   }
-  // Shore/border grass frames the playable island; these margins are also collidable.
-  line(ctx,[[28,50],[28,980]],theme.dark,46);line(ctx,[[1573,40],[1573,990]],theme.dark,46);
-  line(ctx,[[30,990],[1570,990]],theme.dark,43);
+  // Bright grass fringe marks the raised island edge; these margins are collidable.
+  line(ctx,[[28,50],[28,950]],'#45b85a',18);line(ctx,[[1572,40],[1572,950]],'#45b85a',18);line(ctx,[[35,950],[1565,950]],'#45b85a',18);
   return ground;
 }
 
@@ -344,11 +371,20 @@ export function mountWorld({ canvas, state, onPosition = () => {}, onEncounter =
     ctx.font='700 9px "Trebuchet MS",sans-serif';ctx.fillStyle='#e9edcf';ctx.textAlign='center';ctx.fillText('YOU •  TRAILS  •  TREASURE',x+width/2,y+height+13);ctx.restore();
   }
 
+  function drawLocationBanner() {
+    const mobile=cssWidth<500,width=mobile?135:Math.min(230,cssWidth*.34),x=mobile?12:cssWidth/2-width/2,center=x+width/2,y=13;
+    ctx.save();ctx.setTransform(dpr,0,0,dpr,0,0);
+    rounded(ctx,x-5,y+4,width+10,39,9,'#7c4d35b8');rounded(ctx,x,y,width,38,8,'#fff0c8ee');
+    ctx.strokeStyle='#d39556';ctx.lineWidth=2;ctx.strokeRect(x+8,y+6,width-16,26);
+    ctx.fillStyle='#583d31';ctx.font=`900 ${mobile?10:14}px "Trebuchet MS",sans-serif`;ctx.textAlign='center';ctx.fillText(THEMES[regionId].name.toUpperCase(),center,y+25,width-20);
+    ctx.restore();
+  }
+
   function draw() {
     const viewWidth=cssWidth/zoom,viewHeight=cssHeight/zoom,cameraX=clamp(position.x-viewWidth/2,0,Math.max(0,1600-viewWidth)),cameraY=clamp(position.y-viewHeight/2,0,Math.max(0,1000-viewHeight));
     ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,cssWidth,cssHeight);ctx.scale(zoom,zoom);ctx.translate(-cameraX,-cameraY);ctx.drawImage(ground,0,0);
     const actual=liveObjects(),party=(currentState.party?.length?currentState.party:[currentState.equipped||'sprig']).slice(0,2);
-    const renderables=[...actual.map(object=>({y:object.y,draw:()=>drawObject(object)})),...treePositions(regionId).map(([x,y,s])=>({y,draw:()=>drawTree(ctx,x,y,s,THEMES[regionId])})),...ROCKS.map(([x,y,r])=>({y,draw:()=>drawRock(ctx,x,y,r,regionId)}))];
+    const renderables=[...actual.map(object=>({y:object.y,draw:()=>drawObject(object)})),...treePositions(regionId).map(([x,y,s])=>({y,draw:()=>drawTree(ctx,x,y,s,THEMES[regionId])})),...ROCKS.map(([x,y,r])=>({y,draw:()=>drawRock(ctx,x,y,r,regionId)})),...BUSHES.map(([x,y,s])=>({y,draw:()=>drawBush(ctx,x,y,s,THEMES[regionId])})),...FLOWER_PATCHES.map(([x,y])=>({y,draw:()=>drawFlowerPatch(ctx,x,y,THEMES[regionId])}))];
     party.forEach((id,i)=>{const p=petPositions[i];renderables.push({y:p.y,draw:()=>drawSprite(obtainSprite(id),p.x,p.y,83,76,facing,walking?Math.sin(age*13+i)*2:Math.sin(age*2+i)*1)});});
     renderables.push({y:position.y,draw:()=>{
       ellipse(ctx,position.x,position.y+1,27,12,'#f5efb552');ctx.strokeStyle='#fff6c8aa';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(position.x,position.y+1,28,12,0,0,Math.PI*2);ctx.stroke();
@@ -359,7 +395,7 @@ export function mountWorld({ canvas, state, onPosition = () => {}, onEncounter =
     // Tiny drifting leaves, fireflies, or crystal motes add life without hiding the path.
     for(let i=0;i<16;i++){const x=(i*173+age*(regionId==='summit'?10:3))%1600,y=(i*97+Math.sin(age*.6+i)*15)%960;ctx.globalAlpha=.3+Math.sin(age+i)*.12;ellipse(ctx,x,y,2,regionId==='fern'?4:2,THEMES[regionId].glow);}ctx.globalAlpha=1;
     if(nearest && !frozen)label(ctx,nearest.locked?'Trail challenge required':`E · ${nearest.type==='enemy'?'Rematch':nearest.type==='chest'?'Open chest':nearest.type==='npc'?'Talk':nearest.type==='gate'?'Travel':'Visit'}`,position.x,position.y+41,{size:12,background:'#203f35f0'});
-    drawMinimap(viewWidth,viewHeight);
+    drawMinimap(viewWidth,viewHeight);drawLocationBanner();
     canvas.dataset.playerX=position.x.toFixed(1);canvas.dataset.playerY=position.y.toFixed(1);canvas.dataset.region=regionId;canvas.dataset.moving=String(walking);
   }
 

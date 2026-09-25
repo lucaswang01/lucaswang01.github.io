@@ -5,7 +5,7 @@ import {
   grantTreasure, talkToRanger, buyGear, equipGear, setParty, adoptDino,
   updatePosition, knownSpells,
 } from './rpg-core.mjs';
-import { dinoArt, heroArt } from './art.mjs';
+import { dinoArt, heroArt, sceneArt } from './art.mjs';
 import { mountWorld, WORLD_CONFIG } from './world.mjs';
 
 const ACCESS = 'THVjYXM=';
@@ -32,7 +32,8 @@ let selectedTarget = null;
 let mathOpen = false;
 let mathFeedback = null;
 let battleEvents = [];
-let battleEffect = '';
+let battleAnimation = null;
+let battleBusy = false;
 let lastResult = null;
 let toastTimer;
 let audioContext;
@@ -89,23 +90,52 @@ function worldScreen() {
 }
 function unitArt(unit, enemy = false) { return unit.id === 'hero' ? heroArt({ gear: state.gear }) : dinoArt(unit.artId || unit.id, { variant: enemy ? 'enemy' : 'normal', label: unit.name }); }
 function weaknessFor(elementId) { return ELEMENTS.find((item) => item.strongAgainst === elementId); }
+function battleLoadout(spells) {
+  const chosen = [];
+  const add = (spell) => { if (spell && !chosen.some((item) => item.id === spell.id)) chosen.push(spell); };
+  const strongest = (list) => [...list].sort((a, b) => b.level - a.level || b.power - a.power)[0];
+  add(spells.find((spell) => spell.id === 'guard'));
+  add(strongest(spells.filter((spell) => ['heal', 'regen'].includes(spell.effect))));
+  add(strongest(spells.filter((spell) => spell.target === 'all')));
+  add(strongest(spells.filter((spell) => spell.target === 'enemy' && !['heal', 'regen', 'shield'].includes(spell.effect))));
+  [...spells].sort((a, b) => b.level - a.level || b.power - a.power).forEach(add);
+  return chosen.slice(0, 4);
+}
+function validTarget(spell, unit, side) {
+  if (!spell || !unit || unit.hp <= 0) return false;
+  if (spell.target === 'enemy') return side === 'enemy';
+  if (spell.target === 'ally') return side === 'ally';
+  if (spell.target === 'self') return unit.id === state.battle.activeId;
+  return false;
+}
+function impactMarkup(unit) {
+  if (!battleAnimation?.targets.includes(unit.id)) return '';
+  const glyphs = { fire: ['✦', '●', '▲'], water: ['●', '◌', '◆'], leaf: ['❧', '◆', '❦'], stone: ['◆', '▲', '■'], air: ['◌', '≈', '➶'], sun: ['✦', '☀', '✧'], neutral: ['✦', '◆', '✧'] };
+  const particles = Array.from({ length: 9 }, (_, index) => `<i style="--i:${index}">${glyphs[battleAnimation.element]?.[index % 3] || '✦'}</i>`).join('');
+  const label = battleAnimation.labels[unit.id] || '';
+  return `<span class="impact-fx ${battleAnimation.element}" aria-hidden="true">${particles}</span>${label ? `<strong class="impact-number">${esc(label)}</strong>` : ''}`;
+}
 function unitCard(unit, side) {
-  const alive = unit.hp > 0; const active = state.battle.activeId === unit.id; const target = selectedTarget === unit.id;
+  const alive = unit.hp > 0; const active = state.battle.activeId === unit.id; const target = selectedTarget === unit.id || selectedTarget === 'all' && side === 'enemy';
+  const selected = SPELLS.find((spell) => spell.id === selectedSpell); const selectable = validTarget(selected, unit, side);
+  const casting = battleAnimation?.casterId === unit.id; const impact = battleAnimation?.targets.includes(unit.id);
   const weakness = weaknessFor(unit.element);
-  return `<button class="battle-unit ${side} ${active ? 'active' : ''} ${target ? 'targeted' : ''} ${alive ? '' : 'fainted'}" data-action="target" data-id="${unit.id}" ${alive ? '' : 'disabled'} aria-pressed="${target}"><div class="unit-art">${unitArt(unit, side === 'enemy')}</div><div class="unit-card"><span class="element ${unit.element}">${icons[unit.element]} ${element(unit.element).name}</span><b>${esc(unit.name)} · LV ${unit.level || getLevel(state)}</b>${meter(unit.hp, unit.maxHp, 'hp')}<small>${unit.hp}/${unit.maxHp} HP · ${weakness ? `weak to ${weakness.name}` : 'no elemental weakness'}</small>${unit.shield ? `<em>◆ ${unit.shield} shield</em>` : ''}</div></button>`;
+  return `<button class="battle-unit ${side} ${active ? 'active' : ''} ${target ? 'targeted' : ''} ${selectable ? 'selectable' : ''} ${casting ? 'casting' : ''} ${impact ? 'impact' : ''} ${alive ? '' : 'fainted'}" data-action="target" data-id="${unit.id}" ${alive && selectable && !battleBusy ? '' : 'disabled'} aria-pressed="${target}" aria-label="${selectable ? `Choose ${esc(unit.name)} as the target` : esc(unit.name)}"><div class="unit-art">${unitArt(unit, side === 'enemy')}${impactMarkup(unit)}</div><div class="unit-card"><span class="weakness">${weakness ? `Weak: ${icons[weakness.id]}` : 'Arcane'}</span><b>${esc(unit.name)} · LV ${unit.level || getLevel(state)}</b>${meter(unit.hp, unit.maxHp, 'hp')}<small>${unit.hp} / ${unit.maxHp} HP</small>${unit.shield ? `<em>◆ ${unit.shield} shield</em>` : ''}</div></button>`;
 }
 function spellCard(spell, active) {
   const cooldown = active.cooldowns?.[spell.id] || 0; const affordable = state.battle.mana >= spell.cost; const chosen = selectedSpell === spell.id;
-  return `<button class="spell-card ${spell.element} ${chosen ? 'chosen' : ''}" data-action="select-spell" data-id="${spell.id}" ${cooldown || !affordable ? 'disabled' : ''} aria-pressed="${chosen}"><span class="spell-icon">${icons[spell.element]}</span><span><b>${spell.name}</b><small>${spell.description}</small><em>${spell.cost} MP · ${spell.target === 'all' ? 'all enemies' : spell.target} ${spell.cooldown ? `· ${spell.cooldown}-turn recharge` : ''}</em></span>${cooldown ? `<strong>${cooldown} turn${cooldown === 1 ? '' : 's'}</strong>` : !affordable ? '<strong>Need MP</strong>' : ''}</button>`;
+  return `<button class="spell-card ${spell.element} ${chosen ? 'chosen' : ''}" data-action="select-spell" data-id="${spell.id}" ${cooldown || !affordable || battleBusy ? 'disabled' : ''} aria-pressed="${chosen}" title="${esc(spell.description)}"><span class="spell-icon">${icons[spell.element]}</span><b>${esc(spell.name)}</b><small>${spell.cost} MP</small>${cooldown ? `<strong>${cooldown}</strong>` : !affordable ? '<strong>MP</strong>' : ''}</button>`;
 }
 function battleScreen() {
   const battle = state.battle; if (!battle) return resultScreen();
   const active = battle.allies.find((unit) => unit.id === battle.activeId) || battle.allies.find((unit) => unit.hp > 0);
-  let spells = knownSpells(state, active.id); if (spells[0] && typeof spells[0] === 'string') spells = spells.map((id) => SPELLS.find((spell) => spell.id === id));
+  let spells = knownSpells(state, active.id); if (spells[0] && typeof spells[0] === 'string') spells = spells.map((id) => SPELLS.find((spell) => spell.id === id)); spells = battleLoadout(spells);
   const selected = SPELLS.find((spell) => spell.id === selectedSpell); const offensiveCosts = spells.filter((spell) => spell.effect !== 'shield').map((spell) => spell.cost); const needsMath = mathOpen || battle.mana < Math.min(...offensiveCosts);
   const area = region(battle.regionId); const foe = encounter(battle.encounterId);
-  const mathPanel = needsMath ? mathChallenge() : `<span class="eyebrow">Math powers magic</span><h2>Need more MP?</h2><p>You have enough magic for a spell. Solve another Grade 3 puzzle anytime to refill 6 MP.</p>${button('charge', 'Solve a math puzzle', 'gold')}`;
-  return `<section class="battle-page"><header class="battle-title"><div><span class="eyebrow">${esc(area.name)} · Round ${battle.round}</span><h1>${esc(foe.name)}</h1><p>${esc(active.name)}’s turn. Charge magic with math, then choose a spell and target.</p></div>${button('flee', 'Return to camp', 'ghost small')}</header><div class="battle-scene ${battleEffect}" style="--battle-color:${element(foe.element || area.element).color}"><div class="battle-sky"><span></span><span></span><span></span></div><div class="party-side">${battle.allies.map((unit) => unitCard(unit, 'ally')).join('')}</div><div class="versus">VS</div><div class="enemy-side">${battle.enemies.map((unit) => unitCard(unit, 'enemy')).join('')}</div></div><div class="battle-resource"><div><b>Shared magic</b><small>Correct math restores 6 MP for the whole team.</small></div>${meter(battle.mana, battle.maxMana, 'mana')}<strong>${battle.mana}/${battle.maxMana} MP</strong>${button('charge', needsMath ? 'Math challenge open' : 'Solve math for +6 MP', needsMath ? 'gold small' : 'small')}</div><div class="battle-console"><section class="turn-panel"><div class="caster"><div>${unitArt(active)}</div><span><small>NOW CASTING</small><b>${esc(active.name)}</b><em>${icons[active.element]} ${element(active.element).name} magic</em></span></div><h2>Choose a spell</h2><div class="spell-grid" id="spell-grid">${spells.map((spell) => spellCard(spell, active)).join('')}</div><div class="cast-row"><p>${selected ? `<b>${selected.name}:</b> ${selected.target === 'enemy' ? 'Choose a glowing enemy target.' : selected.target === 'ally' ? 'Choose a teammate to help.' : selected.target === 'all' ? 'This hits every enemy.' : 'This affects the caster.'}` : 'Pick a spell to see its targets.'}</p><button class="btn gold" id="cast-spell" data-action="cast" ${!selected || !selectedTarget && ['enemy', 'ally'].includes(selected?.target) ? 'disabled' : ''}>Cast spell →</button></div>${battleEvents.length ? `<div class="battle-log" aria-live="polite"><b>Battle log</b>${battleEvents.slice(-5).map((entry) => `<p>${esc(entry)}</p>`).join('')}</div>` : ''}</section><aside class="math-panel ${needsMath ? 'open' : ''}">${mathPanel}</aside></div></section>`;
+  const prompt = !selected ? `${esc(active.name)}: choose a spell` : selected.target === 'enemy' ? `Choose an enemy for ${esc(selected.name)}` : selected.target === 'ally' ? `Choose a teammate for ${esc(selected.name)}` : `${esc(selected.name)} is ready`;
+  const castReady = selected && ['all', 'self'].includes(selected.target);
+  const animation = battleAnimation ? `<div class="spell-flight ${battleAnimation.element} ${battleAnimation.targetSide}" aria-live="assertive"><span>${icons[battleAnimation.element]}</span><b>${esc(battleAnimation.name)}!</b></div>` : '';
+  return `<section class="battle-page"><h1 class="sr-only">Battle: ${esc(foe.name)}</h1><div class="battle-scene ${battleBusy ? 'animating' : ''}" style="--battle-color:${element(foe.element || area.element).color}"><div class="arena-background">${sceneArt(area.id)}</div><div class="arena-props ${area.id}" aria-hidden="true"><i class="mushroom m1"></i><i class="mushroom m2"></i><i class="mushroom m3"></i><i class="flower f1"></i><i class="flower f2"></i><i class="flower f3"></i></div><div class="arena-wash"></div><header class="arena-heading"><div><span>${esc(area.name)} · Round ${battle.round}</span><b>${esc(foe.name)}</b></div><div class="turn-chip">${icons[active.element]} <strong>${esc(active.name)}</strong>’s turn</div>${button('flee', 'Return to camp', 'ghost small')}</header><div class="party-side">${battle.allies.map((unit) => unitCard(unit, 'ally')).join('')}</div><div class="enemy-side">${battle.enemies.map((unit) => unitCard(unit, 'enemy')).join('')}</div>${animation}<div class="battle-prompt ${selected ? 'targeting' : ''}" role="status">${prompt}</div><section class="spell-dock"><div class="spellbook-cap"><span>✦</span><small>Spells</small></div><div class="spell-grid" id="spell-grid">${spells.map((spell) => spellCard(spell, active)).join('')}</div><div class="dock-info"><span>Shared magic <b>${battle.mana}/${battle.maxMana} MP</b></span>${meter(battle.mana, battle.maxMana, 'mana')}${selected ? `<small>${esc(selected.description)}</small>` : '<small>Choose a card, then click a glowing target.</small>'}<div>${castReady ? `<button class="btn gold small" id="cast-spell" data-action="cast" ${battleBusy ? 'disabled' : ''}>Cast ${esc(selected.name)}</button>` : '<button id="cast-spell" hidden disabled></button>'}${button('charge', needsMath ? 'Math challenge' : '+6 MP with math', 'small')}</div></div></section>${battleEvents.length ? `<div class="battle-log" aria-live="polite"><b>Latest action</b>${battleEvents.slice(-3).map((entry) => `<p>${esc(entry)}</p>`).join('')}</div>` : ''}${needsMath ? `<aside class="math-panel arena-math open"><button class="math-close" data-action="close-math" aria-label="Close math challenge">×</button>${mathChallenge()}</aside>` : ''}</div></section>`;
 }
 function mathChallenge() {
   const question = state.battle.question;
@@ -159,6 +189,28 @@ function stopWorld() { suppressWorldSave = true; worldController?.destroy(); wor
 function travelTo(id) { if (!isRegionUnlocked(state, id)) { toast('Restore the earlier habitat before entering this trail.'); worldController?.setState(state); return; } stopWorld(); const spawn = WORLD_CONFIG[id]?.spawn || { x: 220, y: 760 }; persist(updatePosition(state, { regionId: id, x: spawn.x, y: spawn.y })); render(true, true); announce(`Traveled to ${region(id).name}.`); }
 function exportProgress() { const blob = new Blob([serializeGame(state)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `math-go-${state.player.name.replace(/[^a-z0-9_-]/gi, '-').slice(0, 24) || 'explorer'}-${new Date().toISOString().slice(0, 10)}.json`; document.body.append(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 10_000); toast('Progress downloaded. Keep the JSON file somewhere safe.'); }
 function chooseTargetFor(spell) { if (!spell || !state.battle) return null; if (spell.target === 'self') return state.battle.activeId; if (spell.target === 'all') return 'all'; const units = spell.target === 'ally' ? state.battle.allies : state.battle.enemies; return units.find((unit) => unit.hp > 0)?.id || null; }
+function animateCast(spell, targetId) {
+  if (!spell || battleBusy || !state?.battle) return;
+  const battle = state.battle;
+  const targets = spell.target === 'all' ? battle.enemies.filter((unit) => unit.hp > 0) : spell.target === 'self' ? battle.allies.filter((unit) => unit.id === battle.activeId) : (spell.target === 'ally' ? battle.allies : battle.enemies).filter((unit) => unit.id === targetId && unit.hp > 0);
+  if (!targets.length) { toast(spell.target === 'ally' ? 'Choose a teammate to help.' : 'Choose a glowing enemy.'); return; }
+  const result = castSpell(state, spell.id, targetId || chooseTargetFor(spell));
+  const labels = {};
+  for (const target of targets) {
+    const message = result.events?.find((entry) => entry.includes(target.name)) || '';
+    const damage = message.match(/: (\d+) damage/); const healing = message.match(/restores (\d+)/); const shield = message.match(/gains (\d+) shield/);
+    labels[target.id] = damage ? `−${damage[1]}` : healing ? `+${healing[1]}` : shield ? `+${shield[1]} shield` : '';
+  }
+  battleBusy = true;
+  battleAnimation = { name: spell.name, element: spell.element, casterId: battle.activeId, targets: targets.map((unit) => unit.id), targetSide: spell.target === 'ally' || spell.target === 'self' ? 'to-ally' : 'to-enemy', labels };
+  render(); sound(spell.effect === 'heal' || spell.effect === 'shield' ? 'magic' : 'hit');
+  const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 80 : 1050;
+  window.setTimeout(() => {
+    persist(result.state); battleEvents = result.events || []; battleAnimation = null; battleBusy = false; selectedSpell = null; selectedTarget = null; mathFeedback = null;
+    if (result.outcome === 'ongoing') { mathOpen = state.battle.mana < 2; render(); announce(battleEvents.at(-1) || `${spell.name} cast.`); }
+    else { lastResult = { ...result, message: result.events?.at(-1) || (result.outcome === 'win' ? 'The wild creatures are calm again.' : 'Your team made it back safely.') }; view = 'result'; sound(result.outcome === 'win' ? 'win' : 'hit'); render(true, true); }
+  }, duration);
+}
 
 document.addEventListener('click', (event) => {
   const control = event.target.closest('[data-action]'); if (!control || control.disabled) return; const action = control.dataset.action; const id = control.dataset.id;
@@ -176,13 +228,10 @@ document.addEventListener('click', (event) => {
     else if (action === 'travel') travelTo(id);
     else if (action === 'interact') worldController?.interact();
     else if (action === 'charge') { mathOpen = true; mathFeedback = null; render(); document.querySelector('#battle-answer')?.focus(); }
-    else if (action === 'select-spell') { selectedSpell = id; selectedTarget = chooseTargetFor(SPELLS.find((spell) => spell.id === id)); render(); document.querySelector(`[data-action="select-spell"][data-id="${id}"]`)?.focus(); }
-    else if (action === 'target') { selectedTarget = id; render(); document.querySelector(`[data-action="target"][data-id="${id}"]`)?.focus(); }
-    else if (action === 'cast') {
-      const spell = SPELLS.find((item) => item.id === selectedSpell); if (!spell) return; const result = castSpell(state, selectedSpell, selectedTarget || chooseTargetFor(spell)); persist(result.state); battleEvents = result.events || []; battleEffect = `cast-${spell.element}`; selectedSpell = null; selectedTarget = null; mathFeedback = null;
-      if (result.outcome === 'ongoing') { mathOpen = state.battle.mana < 2; sound('magic'); render(); setTimeout(() => { battleEffect = ''; }, 650); }
-      else { lastResult = { ...result, message: result.events?.at(-1) || (result.outcome === 'win' ? 'The wild creatures are calm again.' : 'Your team made it back safely.') }; view = 'result'; sound(result.outcome === 'win' ? 'win' : 'hit'); render(true, true); }
-    }
+    else if (action === 'close-math') { mathOpen = false; render(); }
+    else if (action === 'select-spell') { const spell = SPELLS.find((item) => item.id === id); selectedSpell = id; selectedTarget = ['all', 'self'].includes(spell.target) ? chooseTargetFor(spell) : null; render(); document.querySelector(`[data-action="select-spell"][data-id="${id}"]`)?.focus(); }
+    else if (action === 'target') { const spell = SPELLS.find((item) => item.id === selectedSpell); if (!spell) { toast('Choose a spell from the cards first.'); return; } if (!validTarget(spell, state.battle.allies.concat(state.battle.enemies).find((unit) => unit.id === id), state.battle.enemies.some((unit) => unit.id === id) ? 'enemy' : 'ally')) return; selectedTarget = id; animateCast(spell, id); }
+    else if (action === 'cast') { const spell = SPELLS.find((item) => item.id === selectedSpell); if (spell) animateCast(spell, selectedTarget || chooseTargetFor(spell)); }
     else if (action === 'flee') modal('Return to Base Camp?', '<p>Your completed quests and rewards stay safe. This battle restarts next time.</p>', button('confirm-flee', 'Return to camp', 'gold'));
     else if (action === 'confirm-flee') { persist(fleeBattle(state)); lastResult = { outcome: 'lose', message: 'Your team returned to camp and recovered.' }; dialog.close(); view = 'result'; render(true, true); }
     else if (action === 'return-world') { lastResult = null; battleEvents = []; view = 'world'; render(true, true); }

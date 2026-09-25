@@ -32,9 +32,14 @@ await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${server.address().port}`;
 let browser;
 let page;
+let animationCaptured = false;
 const errors = [];
 const action = (name, target = page) => target.locator(`[data-action="${name}"]`);
-const navigate = async (view, target = page) => target.locator(`nav [data-action="navigate"][data-view="${view}"]`).click();
+const navigate = async (view, target = page) => {
+  const control = target.locator(`nav [data-action="navigate"][data-view="${view}"]`);
+  if (await control.isVisible()) await control.click();
+  else await control.evaluate(button => button.click());
+};
 const save = async (target = page) => target.evaluate(() => {
   const key = localStorage.getItem('math-go-save-v2') ? 'math-go-save-v2' : 'math-go-save-v1';
   return JSON.parse(localStorage.getItem(key));
@@ -92,9 +97,19 @@ async function charge(target = page) {
   await target.locator('#charge-magic').click();
 }
 async function cast(spellId, targetId, target = page) {
+  const captureAnimation = !animationCaptured && spellId !== 'guard';
+  if (captureAnimation) await target.emulateMedia({ reducedMotion: 'no-preference' });
   await target.locator(`[data-action="select-spell"][data-id="${spellId}"]`).click();
   if (targetId && targetId !== 'all') await target.locator(`[data-action="target"][data-id="${targetId}"]`).click();
-  await target.locator('#cast-spell').click();
+  else await target.locator('#cast-spell').click();
+  await target.locator('.spell-flight').waitFor({ state: 'attached' });
+  if (captureAnimation) {
+    await target.waitForTimeout(480);
+    await target.screenshot({ path: '/tmp/math-go-rpg-spell-animation.png', fullPage: true });
+    await target.waitForTimeout(650);
+    await target.emulateMedia({ reducedMotion: 'reduce' });
+    animationCaptured = true;
+  } else await target.waitForTimeout(120);
 }
 function available(state, effect = 'damage') {
   const actor = state.battle.allies.find(unit => unit.id === state.battle.activeId);
@@ -106,8 +121,9 @@ async function finishBattle(target = page) {
     let state = await save(target);
     if (!state.battle) return state;
     const injured = state.battle.allies.filter(unit => unit.hp > 0).sort((a, b) => a.hp / a.maxHp - b.hp / b.maxHp)[0];
-    const heal = injured.hp < injured.maxHp * .6 ? available(state, 'heal')[0] : null;
-    const spell = heal || available(state).sort((a, b) => b.power / b.cost - a.power / a.cost)[0];
+    const visible = new Set(await target.locator('[data-action="select-spell"]').evaluateAll(buttons => buttons.map(button => button.dataset.id)));
+    const heal = injured.hp < injured.maxHp * .6 ? available(state, 'heal').find(spell => visible.has(spell.id)) : null;
+    const spell = heal || available(state).filter(spell => visible.has(spell.id)).sort((a, b) => b.power / Math.max(1, b.cost) - a.power / Math.max(1, a.cost))[0];
     assert.ok(spell, 'Every active party member must have a usable attack');
     while (state.battle.mana < spell.cost) { await charge(target); state = await save(target); }
     const targetId = heal ? injured.id : spell.target === 'all' ? 'all' : state.battle.enemies.find(unit => unit.hp > 0).id;
@@ -172,9 +188,9 @@ try {
   assert.equal(battle.battle.encounterId, 'fern-1', 'Walking into a visible enemy must start its battle');
   assert.deepEqual(battle.battle.allies.map(unit => unit.id), ['hero', 'sprig']);
   assert.equal(battle.battle.mana, 0);
-  for (const spell of knownSpells(battle, battle.battle.activeId)) {
-    if (spell.effect !== 'shield') assert.ok(await page.locator(`[data-action="select-spell"][data-id="${spell.id}"]`).isDisabled(), `${spell.name} must require math-charged mana`);
-  }
+  const dockSpells = page.locator('[data-action="select-spell"]');
+  assert.ok(await dockSpells.count() <= 4, 'Battle dock intentionally shows no more than four spells');
+  for (const button of await dockSpells.all()) if (await button.getAttribute('data-id') !== 'guard') assert.ok(await button.isDisabled(), 'Damage spells must require math-charged mana');
   assert.ok(await page.locator('#cast-spell').isDisabled());
   const hpBeforeGuard = battle.battle.enemies.map(unit => unit.hp);
   await cast('guard', 'hero');
@@ -229,10 +245,14 @@ try {
     assert.equal(current.battle.activeId, actorId);
     if (current.battle.mana < 2) await charge();
     current = await save();
+    const visible = new Set(await page.locator('[data-action="select-spell"]').evaluateAll(buttons => buttons.map(button => button.dataset.id)));
+    const attack = knownSpells(current, actorId).find(spell => spell.target === 'enemy' && visible.has(spell.id));
+    assert.ok(attack, `${actorId} must have a focused spell in the four-card dock`);
+    while (current.battle.mana < attack.cost) { await charge(); current = await save(); }
     const targetId = actorId === 'sprig' ? 'enemy-1' : 'enemy-2';
     const selectedBefore = current.battle.enemies.find(unit => unit.id === targetId).hp;
     const otherBefore = current.battle.enemies.find(unit => unit.id !== targetId).hp;
-    await cast('spark', targetId);
+    await cast(attack.id, targetId);
     const after = await save();
     assert.ok(after.battle.enemies.find(unit => unit.id === targetId).hp < selectedBefore);
     assert.equal(after.battle.enemies.find(unit => unit.id !== targetId).hp, otherBefore, 'Single-target spells must only hit the selected enemy');
@@ -254,16 +274,19 @@ try {
   healing.battle.allies.find(unit => unit.id === 'brook').hp -= 50;
   await confirmImport(healing);
   await charge();
+  const healingVisible = new Set(await page.locator('[data-action="select-spell"]').evaluateAll(buttons => buttons.map(button => button.dataset.id)));
+  const healingSpell = knownSpells(await save(), 'hero').find(spell => ['heal', 'regen'].includes(spell.effect) && healingVisible.has(spell.id));
+  assert.ok(healingSpell, 'The compact dock keeps one healing spell available');
   const hurtHp = (await save()).battle.allies.find(unit => unit.id === 'brook').hp;
-  await cast('mend', 'brook');
+  await cast(healingSpell.id, 'brook');
   let healed = await save();
   assert.ok(healed.battle.allies.find(unit => unit.id === 'brook').hp > hurtHp, 'Healing must restore the selected ally');
-  assert.ok(healed.battle.allies[0].cooldowns.mend > 0);
+  assert.ok(healed.battle.allies[0].cooldowns[healingSpell.id] > 0);
   await cast('guard', 'brook');
   await cast('guard', 'sprig');
   healed = await save();
   assert.equal(healed.battle.activeId, 'hero');
-  assert.ok(await page.locator('[data-action="select-spell"][data-id="mend"]').isDisabled(), 'Healing cooldown must prevent immediate reuse on the next hero turn');
+  assert.ok(await page.locator(`[data-action="select-spell"][data-id="${healingSpell.id}"]`).isDisabled(), 'Healing cooldown must prevent immediate reuse on the next hero turn');
   const exportBefore = await save();
   await navigate('camp');
   const exported = await downloadState();

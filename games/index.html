@@ -21,6 +21,9 @@
       .game::after { position: absolute; right: 62px; bottom: -40px; width: 5px; height: 270px; background: #fff; content: ""; transform: rotate(35deg); }
       .game:hover { transform: translate(-4px, -4px); }
       .game:focus-visible { outline: 6px solid #f1a5c4; outline-offset: 6px; }
+      .game.math-go { background: linear-gradient(0deg, #103e35f5, #103e3577), url('math-go/assets/island.webp') center/cover; color: #fffbe4; }
+      .game.math-go::before, .game.math-go::after { display: none; }
+      .game.math-go .play { color: #26384a; background: #f6cb68; }
       .game h2, .game p, .game span { position: relative; z-index: 1; }
       .game h2 { margin: 0 0 10px; font-size: clamp(2.2rem, 6vw, 3.8rem); letter-spacing: -.04em; }
       .game p { max-width: 390px; margin: 0; font-size: 1.05rem; line-height: 1.5; }
@@ -34,6 +37,11 @@
       <h1>Games Room</h1>
       <p class="intro">This is where Lucas's games live. More games can be added as new folders later.</p>
       <section class="games" aria-label="Games">
+        <a class="game math-go" href="math-go/">
+          <h2>Math Go</h2>
+          <p>A Grade 3 math adventure. Explore Bramble Island, befriend dinosaurs, and bring four wild habitats to life.</p>
+          <span class="play">Explore the island →</span>
+        </a>
         <a class="game" href="tennis/">
           <h2>Lucas Tennis</h2>
           <p>A tennis game is being built here. Step onto the court to see the placeholder.</p>

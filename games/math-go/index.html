@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#153f36">
+    <meta name="description" content="Explore Bramble Island, befriend dinosaurs, and power your adventure with Grade 3 math. A free family game.">
+    <title>Math Go · The Bramble Island Adventure</title>
+    <link rel="stylesheet" href="style.css">
+  </head>
+  <body>
+    <div id="app"><main class="loading"><p class="wordmark">Math <span>Go</span></p><p>Opening your field guide…</p></main></div>
+    <p id="announcement" class="sr-only" role="status" aria-live="polite"></p>
+    <div id="toast" class="toast" role="status" hidden></div>
+    <dialog id="dialog" aria-labelledby="dialog-title"></dialog>
+    <input id="import-file" type="file" accept=".json,application/json" hidden>
+    <noscript><p class="loading">Please enable JavaScript to play Math Go.</p></noscript>
+    <script type="module" src="app.mjs"></script>
+  </body>
+</html>

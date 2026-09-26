@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#ffd978">
+    <title>Book Recommendations · Lucas's House</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: ui-rounded, "Arial Rounded MT Bold", "Trebuchet MS", system-ui, sans-serif;
+        color: #29314f;
+        background: #fff8dc;
+      }
+      * { box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        margin: 0;
+        padding: 24px;
+        background:
+          radial-gradient(circle at 88% 14%, #81dec7 0 7%, transparent 7.2%),
+          radial-gradient(circle at 9% 88%, #f3a5c4 0 9%, transparent 9.2%),
+          linear-gradient(145deg, #fffdf3, #ffedac);
+      }
+      main { width: min(900px, 100%); margin: 0 auto; padding: 26px 0 50px; }
+      .back { display: inline-block; margin-bottom: 42px; color: inherit; font-weight: 900; text-decoration: none; }
+      .back:hover { text-decoration: underline; }
+      .eyebrow { margin: 0 0 9px; color: #9b5f17; font-size: .8rem; font-weight: 900; letter-spacing: .16em; text-transform: uppercase; }
+      h1 { max-width: 760px; margin: 0; font-size: clamp(2.8rem, 9vw, 6rem); line-height: .94; letter-spacing: -.055em; }
+      .intro { max-width: 650px; margin: 20px 0 34px; color: #5e6176; font-size: 1.08rem; line-height: 1.55; }
+      .bookshelf {
+        position: relative;
+        display: grid;
+        min-height: 350px;
+        padding: 44px 28px 66px;
+        border: 4px solid #29314f;
+        border-radius: 24px;
+        background: #9c613a;
+        box-shadow: 10px 11px 0 #29314f;
+        place-items: end center;
+      }
+      .bookshelf::after { position: absolute; right: 20px; bottom: 48px; left: 20px; height: 22px; border: 4px solid #29314f; border-radius: 8px; background: #ca8753; content: ""; }
+      .books { display: flex; align-items: end; justify-content: center; gap: 10px; }
+      .book { width: clamp(42px, 9vw, 66px); border: 4px solid #29314f; border-radius: 8px 8px 3px 3px; box-shadow: inset -8px 0 #00000012; }
+      .book:nth-child(1) { height: 165px; background: #81dec7; }
+      .book:nth-child(2) { height: 210px; background: #f3a5c4; }
+      .book:nth-child(3) { height: 180px; background: #aeb7f5; }
+      .book:nth-child(4) { height: 225px; background: #ffd966; }
+      .coming-soon { position: relative; z-index: 1; margin: 26px 0 0; padding: 13px 18px; border: 3px solid #29314f; border-radius: 999px; background: #fff; font-weight: 900; text-align: center; }
+      @media (max-width: 560px) {
+        body { padding: 16px; }
+        .bookshelf { min-height: 310px; padding-inline: 18px; box-shadow: 7px 8px 0 #29314f; }
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="back" href="../">← Back to Lucas's house</a>
+      <p class="eyebrow">A room full of stories</p>
+      <h1>Book Recommendations</h1>
+      <p class="intro">Welcome to Lucas's reading room. This is where Lucas will share books he enjoyed and thinks other readers might like too.</p>
+      <section class="bookshelf" aria-label="Lucas's recommendation bookshelf">
+        <div class="books" aria-hidden="true">
+          <span class="book"></span>
+          <span class="book"></span>
+          <span class="book"></span>
+          <span class="book"></span>
+        </div>
+        <p class="coming-soon">Book recommendations are coming soon! 📖</p>
+      </section>
+    </main>
+  </body>
+</html>

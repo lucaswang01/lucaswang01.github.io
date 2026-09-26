@@ -40,13 +40,31 @@
         place-items: end center;
       }
       .bookshelf::after { position: absolute; right: 20px; bottom: 48px; left: 20px; height: 22px; border: 4px solid #29314f; border-radius: 8px; background: #ca8753; content: ""; }
-      .books { display: flex; align-items: end; justify-content: center; gap: 10px; }
+      .books { position: relative; z-index: 1; display: flex; align-items: end; justify-content: center; gap: 10px; }
       .book { width: clamp(42px, 9vw, 66px); border: 4px solid #29314f; border-radius: 8px 8px 3px 3px; box-shadow: inset -8px 0 #00000012; }
-      .book:nth-child(1) { height: 165px; background: #81dec7; }
-      .book:nth-child(2) { height: 210px; background: #f3a5c4; }
-      .book:nth-child(3) { height: 180px; background: #aeb7f5; }
-      .book:nth-child(4) { height: 225px; background: #ffd966; }
-      .coming-soon { position: relative; z-index: 1; margin: 26px 0 0; padding: 13px 18px; border: 3px solid #29314f; border-radius: 999px; background: #fff; font-weight: 900; text-align: center; }
+      .future-book:nth-child(2) { height: 175px; background: #f3a5c4; }
+      .future-book:nth-child(3) { height: 205px; background: #aeb7f5; }
+      .future-book:nth-child(4) { height: 155px; background: #ffd966; }
+      .recommended-book {
+        display: grid;
+        width: clamp(150px, 28vw, 190px);
+        height: 240px;
+        padding: 20px 16px;
+        border-color: #29314f;
+        color: #fff;
+        background: linear-gradient(150deg, #185b83, #29314f 70%);
+        box-shadow: inset -12px 0 #0003, 7px 7px 0 #29314f;
+        place-content: center;
+        text-align: center;
+        text-decoration: none;
+        transition: transform 160ms ease, box-shadow 160ms ease;
+      }
+      .recommended-book:hover { box-shadow: inset -12px 0 #0003, 10px 11px 0 #29314f; transform: translateY(-7px) rotate(-1deg); }
+      .recommended-book:focus-visible { outline: 6px solid #fff; outline-offset: 5px; }
+      .book-number { margin-bottom: 12px; color: #ffd966; font-size: .68rem; font-weight: 900; letter-spacing: .12em; text-transform: uppercase; }
+      .recommended-book strong { font-size: clamp(1rem, 3vw, 1.3rem); line-height: 1.2; }
+      .open-book { margin-top: 16px; color: #b7f1e3; font-size: .78rem; font-weight: 900; }
+      .shelf-note { position: relative; z-index: 1; margin: 26px 0 0; padding: 13px 18px; border: 3px solid #29314f; border-radius: 999px; background: #fff; font-weight: 900; text-align: center; }
       @media (max-width: 560px) {
         body { padding: 16px; }
         .bookshelf { min-height: 310px; padding-inline: 18px; box-shadow: 7px 8px 0 #29314f; }
@@ -60,13 +78,17 @@
       <h1>Book Recommendations</h1>
       <p class="intro">Welcome to Lucas's reading room. This is where Lucas will share books he enjoyed and thinks other readers might like too.</p>
       <section class="bookshelf" aria-label="Lucas's recommendation bookshelf">
-        <div class="books" aria-hidden="true">
-          <span class="book"></span>
-          <span class="book"></span>
-          <span class="book"></span>
-          <span class="book"></span>
+        <div class="books">
+          <a class="book recommended-book" href="harry-potter-goblet-of-fire/">
+            <span class="book-number">Lucas's Pick #1</span>
+            <strong>Harry Potter and the Goblet of Fire</strong>
+            <span class="open-book">Open book →</span>
+          </a>
+          <span class="book future-book" aria-hidden="true"></span>
+          <span class="book future-book" aria-hidden="true"></span>
+          <span class="book future-book" aria-hidden="true"></span>
         </div>
-        <p class="coming-soon">Book recommendations are coming soon! 📖</p>
+        <p class="shelf-note">Choose a book from Lucas's shelf. 📖</p>
       </section>
     </main>
   </body>

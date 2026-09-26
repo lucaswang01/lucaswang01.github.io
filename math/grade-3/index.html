@@ -16,6 +16,20 @@
 
       <section class="panel" id="levels-panel">
         <h2>Choose a level</h2>
+        <div class="timer-settings" id="timer-settings">
+          <div>
+            <p class="timer-settings-title">⏱ Question timer</p>
+            <p class="timer-settings-help">If time runs out, the 10-question round starts over at question 1.</p>
+          </div>
+          <label class="timer-switch">
+            <input id="timer-enabled" type="checkbox" checked>
+            <span class="timer-switch-track" aria-hidden="true"></span>
+            <span>Timer mode</span>
+          </label>
+          <label class="timer-seconds-label" for="timer-seconds">Seconds per question
+            <input id="timer-seconds" type="number" min="5" max="300" step="1" value="30" inputmode="numeric">
+          </label>
+        </div>
         <div class="levels" id="levels"></div>
       </section>
 
@@ -42,6 +56,11 @@
 
       <section class="panel" id="game-panel" hidden>
         <div class="game-top"><h2 id="game-title">Math Game</h2><div class="game-actions"><a class="button" id="illustration-link" href="#" hidden>See illustration</a><button class="button secondary" type="button" data-show-levels>Change level</button></div></div>
+        <div class="question-timer" id="question-timer" role="timer" aria-live="polite">
+          <span class="timer-clock" aria-hidden="true">⏱</span>
+          <div><span class="timer-caption">Time for this question</span><strong id="timer-countdown">30 seconds</strong></div>
+          <button class="mini-button" id="timer-game-toggle" type="button">Turn timer off</button>
+        </div>
         <p class="progress" id="progress-text">Question 1 of 10</p>
         <div class="progress-track"><div class="progress-bar" id="progress-bar"></div></div>
         <div class="question-area"><div class="dice" id="dice" hidden aria-label="Rolling the dice">🎲</div><p class="question" id="question"></p></div>
@@ -60,6 +79,8 @@
     <script>
       window.MATH_GAME_CONFIG = {
         grade: 'Third Grade',
+        timerSupported: true,
+        defaultTimerSeconds: 30,
         levels: [
           { id: 1, title: 'Two-digit addition', description: 'Add two numbers from 10 to 99.', operator: '+', left: [10, 99], right: [10, 99] },
           { id: 2, title: 'Two-digit subtraction', description: 'Subtract two numbers from 10 to 99.', operator: '-', left: [10, 99], right: [10, 99] },

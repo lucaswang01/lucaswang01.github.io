@@ -22,10 +22,27 @@
   const feedback = document.querySelector('#feedback');
   const animals = document.querySelector('#animals');
   const manipulative = document.querySelector('#manipulative');
+  const timerEnabled = document.querySelector('#timer-enabled');
+  const timerSeconds = document.querySelector('#timer-seconds');
+  const questionTimer = document.querySelector('#question-timer');
+  const timerCountdown = document.querySelector('#timer-countdown');
+  const timerGameToggle = document.querySelector('#timer-game-toggle');
 
   const animalFriends = ['🐶', '🐱', '🐼', '🦊', '🐸', '🐨', '🐰', '🦁', '🐯', '🐵', '🦄', '🐧'];
-  const state = { level: null, question: 0, current: null, mode: 'random', picked: 0, rolling: false };
+  const state = {
+    level: null,
+    question: 0,
+    current: null,
+    mode: 'random',
+    picked: 0,
+    rolling: false,
+    timerEnabled: Boolean(config.timerSupported),
+    timerSeconds: Number(config.defaultTimerSeconds) || 30
+  };
   let selectedStickId = null;
+  let questionTimerId = null;
+  let questionDeadline = 0;
+  let transitionTimerId = null;
 
   function randomInt(min, max) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -38,9 +55,68 @@
     completePanel.hidden = true;
   }
 
+  function clampTimerSeconds(value) {
+    const parsed = Math.round(Number(value));
+    return Number.isFinite(parsed) ? Math.min(300, Math.max(5, parsed)) : 30;
+  }
+
+  function stopQuestionTimer() {
+    if (questionTimerId !== null) window.clearInterval(questionTimerId);
+    questionTimerId = null;
+    questionDeadline = 0;
+  }
+
+  function stopTransition() {
+    if (transitionTimerId !== null) window.clearTimeout(transitionTimerId);
+    transitionTimerId = null;
+  }
+
+  function updateTimerControls() {
+    if (!config.timerSupported) return;
+    if (timerEnabled) timerEnabled.checked = state.timerEnabled;
+    if (timerSeconds) {
+      timerSeconds.value = String(state.timerSeconds);
+      timerSeconds.disabled = !state.timerEnabled;
+    }
+    if (questionTimer) questionTimer.classList.toggle('timer-off', !state.timerEnabled);
+    if (timerGameToggle) timerGameToggle.textContent = state.timerEnabled ? 'Turn timer off' : 'Turn timer on';
+    if (!state.timerEnabled && timerCountdown) timerCountdown.textContent = 'Timer off';
+  }
+
+  function updateCountdown() {
+    if (!state.timerEnabled || !questionDeadline || !timerCountdown) return;
+    const secondsLeft = Math.max(0, Math.ceil((questionDeadline - Date.now()) / 1000));
+    timerCountdown.textContent = `${secondsLeft} ${secondsLeft === 1 ? 'second' : 'seconds'}`;
+    questionTimer.classList.toggle('timer-warning', secondsLeft <= 10);
+    if (secondsLeft === 0) restartTimedRound();
+  }
+
+  function startQuestionTimer() {
+    stopQuestionTimer();
+    updateTimerControls();
+    if (!config.timerSupported || !state.timerEnabled || gamePanel.hidden) return;
+    questionTimer.classList.remove('timer-warning');
+    questionDeadline = Date.now() + state.timerSeconds * 1000;
+    updateCountdown();
+    questionTimerId = window.setInterval(updateCountdown, 250);
+  }
+
+  function restartTimedRound() {
+    stopQuestionTimer();
+    stopTransition();
+    state.question = 0;
+    state.current = null;
+    state.rolling = false;
+    answer.value = '';
+    nextQuestion(`Time's up! Your new 10-question round starts at question 1.`);
+  }
+
   function showLevels() {
+    stopQuestionTimer();
+    stopTransition();
     hideAll();
     levelsPanel.hidden = false;
+    updateTimerControls();
   }
 
   function makeProblem() {
@@ -152,26 +228,32 @@
     submit.disabled = false;
     state.rolling = false;
     renderManipulative();
+    startQuestionTimer();
     answer.focus();
   }
 
-  function nextQuestion() {
+  function nextQuestion(message = '') {
     answer.value = '';
-    feedback.textContent = '';
-    feedback.className = 'feedback';
+    feedback.textContent = message;
+    feedback.className = message ? 'feedback timeout' : 'feedback';
 
     if (state.level.special === 'times-table') {
       state.rolling = true;
       submit.disabled = true;
       questionEl.hidden = true;
       dice.hidden = false;
-      window.setTimeout(revealQuestion, 550);
+      transitionTimerId = window.setTimeout(() => {
+        transitionTimerId = null;
+        revealQuestion();
+      }, 550);
     } else {
       revealQuestion();
     }
   }
 
   function startGame(level, mode = 'random', picked = 0) {
+    stopQuestionTimer();
+    stopTransition();
     state.level = level;
     state.question = 0;
     state.mode = mode;
@@ -181,6 +263,7 @@
     gameTitle.textContent = level.title;
     illustrationLink.hidden = !level.illustration;
     if (level.illustration) illustrationLink.href = level.illustration;
+    updateTimerControls();
     nextQuestion();
   }
 
@@ -197,6 +280,8 @@
   }
 
   function finish() {
+    stopQuestionTimer();
+    stopTransition();
     hideAll();
     completePanel.hidden = false;
     const first = animalFriends[randomInt(0, animalFriends.length - 1)];
@@ -312,12 +397,39 @@
     feedback.textContent = 'Correct! ⭐';
     feedback.className = 'feedback good';
     submit.disabled = true;
+    stopQuestionTimer();
     if (state.question === 10) {
-      window.setTimeout(finish, 650);
+      transitionTimerId = window.setTimeout(() => {
+        transitionTimerId = null;
+        finish();
+      }, 650);
     } else {
-      window.setTimeout(nextQuestion, 500);
+      transitionTimerId = window.setTimeout(() => {
+        transitionTimerId = null;
+        nextQuestion();
+      }, 500);
     }
   });
+
+  if (config.timerSupported) {
+    state.timerSeconds = clampTimerSeconds(timerSeconds?.value || state.timerSeconds);
+    timerEnabled?.addEventListener('change', () => {
+      state.timerEnabled = timerEnabled.checked;
+      updateTimerControls();
+    });
+    timerSeconds?.addEventListener('change', () => {
+      state.timerSeconds = clampTimerSeconds(timerSeconds.value);
+      updateTimerControls();
+    });
+    timerGameToggle?.addEventListener('click', () => {
+      state.timerEnabled = !state.timerEnabled;
+      updateTimerControls();
+      if (state.timerEnabled) startQuestionTimer();
+      else stopQuestionTimer();
+      answer.focus();
+    });
+    updateTimerControls();
+  }
 
   document.querySelector('#random-mode').addEventListener('click', () => startGame(state.level, 'random'));
   document.querySelector('#pick-mode').addEventListener('click', () => {

@@ -81,6 +81,22 @@ export const SPELLS = Object.freeze([
   spell('prism', 'Prismatic Comet', 'neutral', 43, 6, 3, 'all', 'damage', 8, 'Your ultimate spell: a rainbow comet strikes every foe.'),
 ]);
 
+// A shared reward for three solved puzzles, including successful retries.
+export const TEAM_SPELL = Object.freeze(spell('starburst', 'Dino Starburst', 'sun', 32, 0, 0, 'all', 'damage', 1, 'Your whole team calls a shower of stars! Hits every enemy. Uses 3 math stars and this teammate’s turn.'));
+
+function recordFrame(timeline, battle, details) {
+  timeline.push({ ...details, battle: structuredClone(battle) });
+}
+
+export function enemyIntent(battle, enemy) {
+  if (enemy.hp <= 0) return null;
+  const allies = battle.allies.filter((ally) => ally.hp > 0);
+  const guardian = encounterFor(battle.encounterId).boss && enemy.id === 'enemy-1';
+  const roar = guardian && battle.round % 3 === 0;
+  const target = allies[(battle.round + Number(enemy.id.slice(-1)) - 2) % allies.length];
+  return { name: roar ? 'Guardian roar' : `${ELEMENTS.find((item) => item.id === enemy.element).name} strike`, roar, targets: roar ? allies.map((ally) => ally.id) : target ? [target.id] : [] };
+}
+
 const STARTERS = ['sprig', 'brook', 'pebble'];
 const CAMPAIGN = ENCOUNTERS.filter((encounter) => !encounter.roamer).map((encounter) => encounter.id);
 const TREASURES = REGIONS.flatMap((region) => [1, 2].map((number) => `${region.id}-chest-${number}`));
@@ -184,7 +200,7 @@ export function normalizeGame(raw) {
   state.world = { regionId, x: coord(rawWorld.x, 1600), y: coord(rawWorld.y, 1000), treasures: list(rawWorld.treasures, TREASURES, 'opened chests'), talked: list(rawWorld.talked, RANGERS, 'ranger conversations') };
   if ([...state.world.treasures, ...state.world.talked].some((id) => !isRegionUnlocked(state, regionForId(id)))) fail('A saved discovery is in a locked region.');
   if (raw.battle !== null) {
-    const battle = object(raw.battle, ['encounterId', 'regionId', 'round', 'activeId', 'acted', 'mana', 'maxMana', 'question', 'allies', 'enemies', 'log'], 'battle');
+    const battle = object(raw.battle, ['encounterId', 'regionId', 'round', 'activeId', 'acted', 'mana', 'maxMana', 'question', 'allies', 'enemies', 'log', 'stars'], 'battle');
     const encounter = encounterFor(battle.encounterId);
     if (!isEncounterUnlocked(state, encounter.id) || encounter.regionId !== battle.regionId || state.world.regionId !== battle.regionId) fail('The battle is not available in this region.');
     if (battle.maxMana !== 12) fail('Invalid maximum mana.');
@@ -195,7 +211,7 @@ export function normalizeGame(raw) {
     const activeId = choose(battle.activeId, allies.filter((ally) => ally.hp > 0 && !acted.includes(ally.id)).map((ally) => ally.id), 'active teammate');
     if (!Array.isArray(battle.log) || battle.log.length > 8 || battle.log.some((line) => typeof line !== 'string' || line.length > 250 || /[<>\u0000-\u001f]/.test(line))) fail('Invalid battle log.');
     state.battle = { encounterId: encounter.id, regionId: encounter.regionId, round: integer(battle.round, 1, 10_000, 'battle round'), activeId, acted, mana: integer(battle.mana, 0, 12, 'mana'), maxMana: 12,
-      question: normalizeQuestion(battle.question, state), allies, enemies, log: [...battle.log] };
+      stars: integer(battle.stars === undefined ? 0 : battle.stars, 0, 3, 'math stars'), question: normalizeQuestion(battle.question, state), allies, enemies, log: [...battle.log] };
   }
   return state;
 }
@@ -272,7 +288,7 @@ export function startBattle(raw, encounterId, rng = Math.random) {
   const encounter = encounterFor(encounterId);
   if (!isEncounterUnlocked(state, encounterId)) fail(encounter.boss ? 'Clear the two trail encounters before challenging the guardian.' : 'Restore the previous region to open this trail.');
   if (state.world.regionId !== encounter.regionId) fail('Travel to this encounter’s region first.');
-  state.battle = { encounterId, regionId: encounter.regionId, round: 1, activeId: 'hero', acted: [], mana: 0, maxMana: 12,
+  state.battle = { encounterId, regionId: encounter.regionId, round: 1, activeId: 'hero', acted: [], mana: 0, maxMana: 12, stars: 0,
     question: { ...createQuestion(state.topic, rng), attempted: false }, allies: partyUnits(state), enemies: enemyUnits(encounter),
     log: [encounter.boss ? 'The guardian prepares a team-wide roar every third round. Shield or heal your team!' : 'Answer a math question to charge mana. Your whole team shares this energy.'] };
   return state;
@@ -301,6 +317,7 @@ export function chargeMana(raw, answer, rng = Math.random) {
   const explanation = question.explanation;
   const gained = Math.min(6, state.battle.maxMana - state.battle.mana);
   state.battle.mana += gained;
+  state.battle.stars = Math.min(3, state.battle.stars + 1);
   state.battle.question = { ...createQuestion(state.topic, rng), attempted: false };
   return { state, correct: true, message: `Great thinking! +${gained} mana for your team.`, explanation };
 }
@@ -323,7 +340,7 @@ function healUnit(target, amount) {
   target.hp += healing;
   return healing;
 }
-function winBattle(state, events) {
+function winBattle(state, events, timeline) {
   const encounter = encounterFor(state.battle.encounterId);
   const firstClear = !encounter.roamer && !state.completed.includes(encounter.id);
   const oldLevel = getLevel(state);
@@ -347,10 +364,10 @@ function winBattle(state, events) {
   reward.campaignComplete = firstClear && state.completed.length === CAMPAIGN.length;
   if (reward.newLevel > oldLevel) events.push(`Level ${reward.newLevel}! Your whole team gains health and spell power.`);
   state.battle = null;
-  return { state, events, outcome: 'win', reward };
+  return { state, events, timeline, outcome: 'win', reward };
 }
 
-function enemyRound(state, events) {
+function enemyRound(state, events, timeline) {
   const battle = state.battle;
   const encounter = encounterFor(battle.encounterId);
   for (const enemy of battle.enemies) {
@@ -359,25 +376,32 @@ function enemyRound(state, events) {
       enemy.status.burn -= 1;
       const { dealt } = damageUnit(enemy, 7 + Math.floor(getLevel(state) / 2));
       events.push(`${enemy.name} takes ${dealt} ember damage.`);
+      recordFrame(timeline, battle, { name: 'Glowing embers', element: 'fire', kind: 'burn', casterId: enemy.id, targets: [enemy.id], labels: { [enemy.id]: `−${dealt}` } });
       if (enemy.hp === 0) continue;
     }
     const alive = battle.allies.filter((ally) => ally.hp > 0);
     if (!alive.length) break;
     const isGuardian = encounter.boss && enemy.id === 'enemy-1';
     if (isGuardian && battle.round % 3 === 0) {
+      const labels = {};
       for (const target of alive) {
         const { dealt, absorbed } = damageUnit(target, Math.round(enemy.power * 0.85));
         events.push(`Guardian roar! ${target.name} takes ${dealt}${absorbed ? ` (${absorbed} blocked)` : ''}.`);
+        labels[target.id] = absorbed ? `−${dealt} · ${absorbed} blocked` : `−${dealt}`;
       }
+      recordFrame(timeline, battle, { name: 'Guardian roar!', element: 'air', kind: 'roar', casterId: enemy.id, targets: alive.map((ally) => ally.id), labels });
     } else {
       const index = (battle.round + Number(enemy.id.slice(-1)) - 2) % alive.length;
       const target = alive[index];
       const hit = Math.round(enemy.power * elementMultiplier(enemy.element, target.element));
       const { dealt, absorbed } = damageUnit(target, hit);
       events.push(`${enemy.name} hits ${target.name} for ${dealt}${absorbed ? ` (${absorbed} blocked)` : ''}.`);
+      recordFrame(timeline, battle, { name: `${ELEMENTS.find((item) => item.id === enemy.element).name} strike`, element: enemy.element, kind: 'attack', casterId: enemy.id, targets: [target.id], labels: { [target.id]: absorbed ? `−${dealt} · ${absorbed} blocked` : `−${dealt}` } });
       if (isGuardian && battle.round % 3 === 1) {
-        enemy.shield = Math.min(200, enemy.shield + 18 + encounter.level);
+        const gained = Math.min(200 - enemy.shield, 18 + encounter.level);
+        enemy.shield += gained;
         events.push('The guardian raises a crystal shield. Keep attacking to break it.');
+        recordFrame(timeline, battle, { name: 'Guardian ward', element: 'stone', kind: 'shield', casterId: enemy.id, targets: [enemy.id], labels: { [enemy.id]: `+${gained} shield` } });
       }
     }
   }
@@ -386,6 +410,7 @@ function enemyRound(state, events) {
       ally.status.regen -= 1;
       const restored = healUnit(ally, 10 + getLevel(state));
       events.push(`${ally.name} restores ${restored} health in the healing rain.`);
+      recordFrame(timeline, battle, { name: 'Healing rain', element: 'water', kind: 'heal', casterId: ally.id, targets: [ally.id], labels: { [ally.id]: `+${restored} HP` } });
     }
     for (const id of Object.keys(ally.cooldowns)) {
       ally.cooldowns[id] -= 1;
@@ -399,7 +424,8 @@ export function castSpell(raw, spellId, targetId) {
   if (!state.battle) fail('Meet an enemy before casting a spell.');
   const battle = state.battle;
   const actor = battle.allies.find((unit) => unit.id === battle.activeId);
-  const spell = knownSpells(state, actor.id).find((item) => item.id === spellId) || fail('This teammate has not learned that spell yet.');
+  const spell = spellId === TEAM_SPELL.id ? TEAM_SPELL : knownSpells(state, actor.id).find((item) => item.id === spellId) || fail('This teammate has not learned that spell yet.');
+  if (spellId === TEAM_SPELL.id && battle.stars < 3) fail('Solve three math puzzles to call Dino Starburst.');
   if (actor.cooldowns[spellId] > 0) fail('That spell is cooling down. Choose another spell.');
   if (battle.mana < spell.cost) fail('Answer a math question to charge more mana.');
   let targets;
@@ -412,37 +438,45 @@ export function castSpell(raw, spellId, targetId) {
     targets = [target];
   }
   battle.mana -= spell.cost;
+  if (spellId === TEAM_SPELL.id) battle.stars = 0;
   if (spell.cooldown) actor.cooldowns[spellId] = spell.cooldown + 1;
   const events = [];
+  const timeline = [];
+  const labels = {};
   for (const target of targets) {
     const power = spell.power + actor.power;
     if (spell.effect === 'heal' || spell.effect === 'regen') {
       const healing = healUnit(target, power);
       if (spell.effect === 'regen') target.status.regen = 2;
       events.push(`${actor.name} uses ${spell.name}: ${target.name} restores ${healing} health.`);
+      labels[target.id] = `+${healing} HP`;
     } else if (spell.effect === 'shield') {
-      target.shield = Math.min(200, target.shield + power);
-      events.push(`${actor.name} uses ${spell.name}: ${target.name} gains ${power} shield.`);
+      const gained = Math.min(200 - target.shield, power);
+      target.shield += gained;
+      events.push(`${actor.name} uses ${spell.name}: ${target.name} gains ${gained} shield.`);
+      labels[target.id] = `+${gained} shield`;
     } else {
       const multiplier = elementMultiplier(spell.element, target.element);
       const { dealt, absorbed } = damageUnit(target, Math.round(power * multiplier));
       if (spell.effect === 'burn' && target.hp > 0) target.status.burn = 2;
       if (spell.effect === 'drain') healUnit(actor, Math.ceil(dealt / 4));
       events.push(`${actor.name} casts ${spell.name}: ${dealt} damage to ${target.name}${absorbed ? ` (${absorbed} shield blocked)` : ''}.${multiplier > 1 ? ' Element advantage!' : multiplier < 1 ? ' Resisted.' : ''}`);
+      labels[target.id] = `−${dealt}${multiplier > 1 ? ' · Super effective!' : multiplier < 1 ? ' · Resisted' : ''}${absorbed ? ` · ${absorbed} blocked` : ''}`;
     }
   }
-  if (!battle.enemies.some((enemy) => enemy.hp > 0)) return winBattle(state, events);
+  recordFrame(timeline, battle, { name: spell.name, spellId, element: spell.element, kind: spellId === TEAM_SPELL.id ? 'ultimate' : spell.effect, casterId: actor.id, targets: targets.map((target) => target.id), labels });
+  if (!battle.enemies.some((enemy) => enemy.hp > 0)) return winBattle(state, events, timeline);
   battle.acted.push(actor.id);
   let next = battle.allies.find((unit) => unit.hp > 0 && !battle.acted.includes(unit.id));
   if (!next) {
-    enemyRound(state, events);
-    if (!battle.enemies.some((enemy) => enemy.hp > 0)) return winBattle(state, events);
+    enemyRound(state, events, timeline);
+    if (!battle.enemies.some((enemy) => enemy.hp > 0)) return winBattle(state, events, timeline);
     if (!battle.allies.some((ally) => ally.hp > 0)) {
       state.battle = null;
       state.world.x = 220;
       state.world.y = 760;
       events.push('Your team returns to camp to recover. You keep all your progress and supplies.');
-      return { state, events, outcome: 'lose' };
+      return { state, events, timeline, outcome: 'lose' };
     }
     battle.round += 1;
     battle.acted = [];
@@ -451,7 +485,7 @@ export function castSpell(raw, spellId, targetId) {
   }
   battle.activeId = next.id;
   battle.log = events.slice(-8);
-  return { state, events, outcome: 'ongoing' };
+  return { state, events, timeline, outcome: 'ongoing' };
 }
 
 export function fleeBattle(raw) {

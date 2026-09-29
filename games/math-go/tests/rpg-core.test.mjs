@@ -333,3 +333,46 @@ test('malformed saves fail safely: IDs, bounds, forged questions, party state, a
     assert.throws(() => normalizeGame(state));
   }
 });
+
+test('three solved puzzles unlock one team special; retries keep earned stars and saves migrate', () => {
+  let state = startBattle(game(), 'fern-2');
+  const legacy = clone(state); delete legacy.battle.stars;
+  assert.equal(parseGame(JSON.stringify(legacy)).battle.stars, 0);
+  assert.throws(() => castSpell(state, 'starburst'), /three math/);
+  state = charge(state);
+  const wrong = chargeMana(state, state.battle.question.answer + 1).state;
+  assert.equal(wrong.battle.stars, 1, 'Mistakes never take away earned stars');
+  state = charge(wrong);
+  assert.equal(state.battle.stars, 2, 'A successful retry earns its star');
+  state = castSpell(state, 'spark', 'enemy-1').state;
+  state = charge(state);
+  assert.equal(state.battle.stars, 3);
+  const before = serializeGame(state);
+  const result = castSpell(state, 'starburst');
+  assert.equal(serializeGame(state), before, 'The special does not mutate its input');
+  assert.equal(result.timeline[0].kind, 'ultimate');
+  assert.equal(result.timeline[0].casterId, 'sprig', 'Any teammate can use the shared special');
+  assert.equal(result.timeline[0].battle.stars, 0);
+  assert.equal(result.timeline[0].battle.mana, state.battle.mana, 'Team special spends stars, not magic');
+  for (const enemy of result.timeline[0].battle.enemies) assert.ok(enemy.hp < state.battle.enemies.find((item) => item.id === enemy.id).hp);
+  assert.equal(result.state.battle.activeId, 'hero', 'Special consumes the companion turn and permits the enemy round');
+  assert.throws(() => castSpell(result.state, 'starburst'), /three math/);
+  assert.deepEqual(parseGame(serializeGame(result.state)), result.state);
+  for (const stars of [-1, 4, 1.5, null, '3']) { const bad = clone(state); bad.battle.stars = stars; assert.throws(() => normalizeGame(bad), /stars/); }
+});
+
+test('cinematic frames contain ordered actual combat results, including shields and burning knockouts', () => {
+  let state = charge(startBattle(game(), 'fern-2'));
+  state = castSpell(state, 'guard').state;
+  const result = castSpell(state, 'vine', 'enemy-2');
+  assert.deepEqual(result.timeline.map((frame) => frame.casterId), ['sprig', 'enemy-1', 'enemy-2']);
+  assert.equal(result.timeline[0].battle.allies[0].shield, 30, 'Enemy hits have not happened in the player frame');
+  assert.ok(result.timeline[1].battle.allies[0].shield < 30);
+  assert.match(result.timeline[1].labels.hero, /blocked/);
+  assert.notDeepEqual(result.timeline[0].battle, result.timeline[2].battle, 'Snapshots are independent');
+  state.battle.enemies[0].hp = 1; state.battle.enemies[0].status.burn = 1;
+  const burn = castSpell(state, 'vine', 'enemy-2');
+  assert.equal(burn.timeline[1].kind, 'burn');
+  assert.equal(burn.timeline[1].battle.enemies[0].hp, 0);
+  assert.ok(!burn.timeline.some((frame) => frame.kind === 'attack' && frame.casterId === 'enemy-1'));
+});

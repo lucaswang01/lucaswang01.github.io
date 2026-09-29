@@ -57,6 +57,16 @@ async function noOverflow(label, target = page) {
   const sizes = await target.evaluate(() => ({ width: document.documentElement.clientWidth, content: document.documentElement.scrollWidth }));
   assert.ok(sizes.content <= sizes.width + 1, `${label} overflows: ${JSON.stringify(sizes)}`);
 }
+async function noOverlappingUnits(label, target = page) {
+  const units = await target.locator('.battle-unit').evaluateAll(nodes => nodes.map(node => {
+    const r = node.getBoundingClientRect(); return { id: node.dataset.id, x: r.x, y: r.y, right: r.right, bottom: r.bottom };
+  }));
+  for (let i = 0; i < units.length; i++) for (let j = i + 1; j < units.length; j++) {
+    const a = units[i], b = units[j];
+    assert.ok(a.right <= b.x + 1 || b.right <= a.x + 1 || a.bottom <= b.y + 1 || b.bottom <= a.y + 1,
+      `${label}: ${a.id} overlaps ${b.id}: ${JSON.stringify([a, b])}`);
+  }
+}
 async function unlock(target = page) {
   await target.locator('#access-code').fill(Buffer.from('THVjYXM=', 'base64').toString());
   await target.locator('#gate-form button[type="submit"]').click();
@@ -106,10 +116,10 @@ async function cast(spellId, targetId, target = page) {
   if (captureAnimation) {
     await target.waitForTimeout(480);
     await target.screenshot({ path: '/tmp/math-go-rpg-spell-animation.png', fullPage: true });
-    await target.waitForTimeout(650);
+    await target.locator('.battle-scene.animating').waitFor({ state: 'detached' });
     await target.emulateMedia({ reducedMotion: 'reduce' });
     animationCaptured = true;
-  } else await target.waitForTimeout(120);
+  } else await target.locator('.battle-scene.animating').waitFor({ state: 'detached' });
 }
 function available(state, effect = 'damage') {
   const actor = state.battle.allies.find(unit => unit.id === state.battle.activeId);
@@ -263,6 +273,7 @@ try {
   assert.equal(getLevel(levelWin), 2);
   assert.match(await page.locator('.result-page').textContent(), /Level up/);
   assert.match(await page.locator('.unlock-box').textContent(), /Moonlit Mend/);
+  await page.screenshot({ path: '/tmp/math-go-victory.png', fullPage: true });
   await navigate('spells');
   assert.ok(await page.locator('.spell-book-card').count() >= 18);
   assert.ok(await page.locator('.spell-book-card.locked').count() > 0);
@@ -348,6 +359,78 @@ try {
   await upgradeContext.close();
   console.log('PASS automatic browser-save upgrade from v1');
 
+  // New battle controls, a real earned special, and every canvas spell family.
+  let spectacle = createGame({ name: 'Star Ranger', starter: 'sprig', topic: 'mul' });
+  spectacle.xp = 700; spectacle.completed = ['fern-1', 'fern-2'];
+  spectacle.collection.push('brook'); spectacle.party.push('brook');
+  spectacle = startBattle(normalizeGame(spectacle), 'fern-3');
+  spectacle.battle.round = 3; spectacle.battle.stars = 2; spectacle.battle.mana = 6;
+  spectacle.battle.enemies.forEach(unit => { unit.shield = 150; });
+  await confirmImport(spectacle);
+  assert.match(await page.locator('.guardian-warning').textContent(), /Shield your team/);
+  await noOverlappingUnits('Desktop full team');
+  assert.equal(await page.locator('.arena-canvas').count(), 1);
+  assert.equal(await page.locator('.effects-canvas').count(), 1);
+  await action('spellbook').click();
+  assert.equal(await page.locator('.battle-spellbook [data-action="select-spell"]').count(), 25);
+  await page.locator('.battle-spellbook [data-action="spellbook"]').click();
+  await charge();
+  assert.equal((await save()).battle.stars, 3);
+  assert.ok(await action('team-special').isEnabled());
+  await page.reload();
+  assert.ok(await action('team-special').isEnabled(), 'Earned stars survive reload');
+  await action('battle-motion').click();
+  assert.ok(await page.locator('.gentle-motion').count());
+  await page.reload();
+  assert.equal(await action('battle-motion').getAttribute('aria-pressed'), 'true', 'Gentle effects choice persists');
+  await action('battle-motion').click();
+  await action('battle-sound').click();
+  assert.equal((await save()).settings.sound, true);
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await action('team-special').click();
+  await page.locator('#cast-spell').click();
+  await page.waitForTimeout(650);
+  await page.screenshot({ path: '/tmp/math-go-starburst.png', fullPage: true });
+  const committedSpecial = await save();
+  assert.equal(committedSpecial.battle.stars, 0);
+  assert.equal(committedSpecial.battle.mana, 12);
+  await action('flee').evaluate(button => button.click());
+  assert.equal(await page.locator('#dialog[open]').count(), 0, 'Leaving cannot race a combat cinematic');
+  await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  assert.equal((await save()).battle.activeId, 'sprig');
+  assert.equal(await action('team-special').isDisabled(), true);
+
+  for (const spellId of ['spark', 'ember', 'splash', 'vine', 'shard', 'gust', 'sunray', 'mend', 'guard']) {
+    const fixture = structuredClone(spectacle);
+    fixture.battle.allies[0].hp -= 45;
+    await confirmImport(fixture);
+    await action('spellbook').click();
+    await page.locator(`.battle-spellbook [data-action="select-spell"][data-id="${spellId}"]`).click();
+    if (spellId === 'guard') await page.locator('#cast-spell').click();
+    else await page.locator(`[data-action="target"][data-id="${spellId === 'mend' ? 'hero' : 'enemy-1'}"]`).click();
+    await page.waitForTimeout(470);
+    if (spellId === 'ember') await page.screenshot({ path: '/tmp/math-go-fire-spell.png', fullPage: true });
+    assert.ok(await page.locator('.spell-flight').count());
+    const snapshot = await save();
+    if (spellId === 'sunray') {
+      await page.reload();
+      assert.deepEqual(await save(), snapshot, 'Reload during an effect resumes the committed move exactly once');
+      assert.equal(await page.locator('.battle-scene.animating').count(), 0);
+    } else await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  }
+  const enemyFixture = structuredClone(spectacle);
+  enemyFixture.battle.acted = ['hero', 'sprig']; enemyFixture.battle.activeId = 'brook';
+  await confirmImport(enemyFixture);
+  await page.locator('[data-action="select-spell"][data-id="guard"]').click();
+  await page.locator('#cast-spell').click();
+  await page.locator('.spell-flight b', { hasText: 'Guardian roar!' }).waitFor();
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: '/tmp/math-go-guardian-roar.png', fullPage: true });
+  assert.ok(await page.locator('.enemy-turn.current').count(), 'Enemy actions get their own visible turn');
+  await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  console.log('PASS all spell VFX families, stars, team special, full spellbook, boss telegraph, enemy choreography, sound/motion settings, and mid-cast reload');
+
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
   mobile.setDefaultTimeout(10_000);
   const phone = await mobile.newPage(); watch(phone);
@@ -366,10 +449,28 @@ try {
   await phone.screenshot({ path: '/tmp/math-go-rpg-world-mobile.png', fullPage: true });
   await confirmImport(exported, phone);
   await noOverflow('Mobile party battle', phone);
+  await noOverlappingUnits('Phone full team', phone);
+  const promptBounds = await phone.locator('.battle-prompt').boundingBox();
+  for (const card of await phone.locator('.unit-card').all()) {
+    const bounds = await card.boundingBox();
+    assert.ok(bounds.y + bounds.height < promptBounds.y, 'Phone prompt must not cover a character health card');
+  }
   await phone.screenshot({ path: '/tmp/math-go-rpg-battle-mobile.png', fullPage: true });
+  await action('spellbook', phone).click();
+  assert.ok(await phone.locator('.battle-spellbook').isVisible());
+  await noOverflow('Mobile full battle spellbook', phone);
+  await phone.locator('.battle-spellbook [data-action="spellbook"]').click();
   for (const screen of ['party', 'spells', 'journal', 'camp']) { await navigate(screen, phone); await noOverflow(`Mobile ${screen}`, phone); }
   await phone.setViewportSize({ width: 320, height: 740 });
   for (const screen of ['world', 'party', 'spells', 'journal', 'camp']) { await navigate(screen, phone); await noOverflow(`Small phone ${screen}`, phone); }
+  await confirmImport(spectacle, phone);
+  await noOverflow('320px guardian battle', phone);
+  await noOverlappingUnits('320px guardian battle', phone);
+  await phone.screenshot({ path: '/tmp/math-go-small-phone.png', fullPage: true });
+  await phone.setViewportSize({ width: 1024, height: 768 });
+  await noOverflow('Tablet guardian battle', phone);
+  await noOverlappingUnits('Tablet guardian battle', phone);
+  await phone.screenshot({ path: '/tmp/math-go-tablet.png', fullPage: true });
   await mobile.close();
   console.log('PASS touch movement/release and 390px/320px party, spellbook, journal, camp layouts');
 

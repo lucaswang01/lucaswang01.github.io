@@ -1,10 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createSave, beginBattle } from '../core.mjs';
+import { TOPICS, createSave, beginBattle } from '../core.mjs';
 import {
   ADOPTION_COST, SPELLS, DINOS, REGIONS, ENCOUNTERS, createGame, normalizeGame, parseGame, serializeGame,
   getLevel, heroStats, partyUnits, knownSpells, isRegionUnlocked, isEncounterUnlocked,
-  startBattle, chargeMana, castSpell, fleeBattle, adoptDino, buyGear, equipGear, setParty,
+  startBattle, chargeMana, changeQuestion, castSpell, fleeBattle, adoptDino, buyGear, equipGear, setParty,
   grantTreasure, talkToRanger, updatePosition, elementMultiplier,
 } from '../rpg-core.mjs';
 
@@ -49,7 +49,7 @@ test('new game, heroes, original roster, and 25 different spells', () => {
   assert.equal(state.world.y, 760);
   assert.equal(partyUnits(state).length, 2);
   assert.equal(partyUnits(state)[0].id, 'hero');
-  assert.equal(DINOS.length, 7);
+  assert.equal(DINOS.length, 13);
   assert.equal(SPELLS.length, 25);
   assert.equal(new Set(SPELLS.map((spell) => spell.id)).size, 25);
   assert.ok(['fire', 'water', 'leaf'].every((element) => knownSpells(state, 'hero').some((spell) => spell.element === element)));
@@ -74,7 +74,7 @@ test('legacy saves migrate without losing achievements, progress, currency, or s
   const legacy = createSave({ name: 'Older Lucas', starter: 'brook', topic: 'add2' });
   legacy.xp = 840;
   legacy.coins = 222;
-  legacy.completed = ENCOUNTERS.filter((encounter) => !encounter.roamer).map((encounter) => encounter.id);
+  legacy.completed = ENCOUNTERS.filter((encounter) => !encounter.roamer && ['fern', 'river', 'crystal', 'summit'].includes(encounter.regionId)).map((encounter) => encounter.id);
   legacy.collection.push('sprig', 'breeze', 'bloom', 'crystal', 'ember');
   legacy.equipped = 'ember';
   legacy.ownedGear.push('sun');
@@ -111,6 +111,41 @@ test('wrong answers are gentle, count first attempts once, and correct answers c
   assert.equal(result.state.stats.correct, 1);
   assert.throws(() => charge(result.state), /full/);
   assert.equal(original.stats.answered, 0, 'Transition does not mutate its input');
+});
+
+test('changing a question is free, always changes the problem, and respects the practice topic', () => {
+  for (const topic of [...TOPICS.map((item) => item.id), 'mixed']) {
+    for (const seed of [0, .4, .999]) {
+      const original = startBattle(game({ topic }), 'fern-1', () => seed);
+      original.battle.mana = 4; original.battle.stars = 2;
+      original.battle.allies[0].shield = 10;
+      original.battle.allies[0].cooldowns.guard = 1;
+      const before = serializeGame(original);
+      const next = changeQuestion(original, () => seed);
+      assert.notEqual(next.battle.question.prompt, original.battle.question.prompt);
+      assert.equal(next.battle.question.attempted, false);
+      assert.ok(topic === 'mixed' || next.battle.question.topic === topic);
+      assert.deepEqual({ ...next, battle: { ...next.battle, question: original.battle.question } }, original, 'Only the question changes; no combat or learning rewards are granted');
+      assert.equal(serializeGame(original), before, 'The input save is untouched');
+      assert.deepEqual(parseGame(serializeGame(next)), next);
+    }
+  }
+  assert.throws(() => changeQuestion(game()), /enemy/);
+});
+
+test('changing after a wrong answer preserves that attempt and the next problem earns normal magic', () => {
+  const original = startBattle(game(), 'fern-1', () => .4);
+  const wrong = chargeMana(original, original.battle.question.answer + 1).state;
+  const changed = changeQuestion(wrong, () => .8);
+  assert.deepEqual(changed.stats, wrong.stats);
+  assert.equal(changed.battle.question.attempted, false);
+  const solved = chargeMana(changed, changed.battle.question.answer).state;
+  assert.equal(solved.stats.answered, 2);
+  assert.equal(solved.stats.correct, 1);
+  assert.equal(solved.battle.mana, 6);
+  assert.equal(solved.battle.stars, 1);
+  assert.equal(solved.battle.round, original.battle.round);
+  assert.equal(solved.battle.activeId, original.battle.activeId);
 });
 
 test('party turn order includes hero and two pets, then enemies respond', () => {
@@ -206,12 +241,12 @@ test('full campaign is winnable with mixed-element decisions and grants XP, frie
     assert.ok(state.collection.includes(DINOS.find((dino) => dino.unlockHabitat === region.id).id));
     if (state.coins >= 180 && !state.ownedGear.includes('sun')) state = buyGear(state, 'sun');
   }
-  assert.equal(state.completed.length, 12);
+  assert.equal(state.completed.length, 21);
   assert.ok(getLevel(state) >= 14);
   assert.ok(knownSpells(state).some((spell) => spell.id === 'prism'));
   assert.ok(state.stats.correct > 0);
   assert.deepEqual(parseGame(serializeGame(state)), state);
-  const replay = campaignBattle(state, 'summit-3');
+  const replay = campaignBattle(updatePosition(state, { regionId: 'summit', x: 220, y: 760 }), 'summit-3');
   assert.equal(replay.reward.firstClear, false);
   assert.equal(replay.reward.creature, null);
   assert.equal(replay.reward.xp, 30);
@@ -224,7 +259,7 @@ test('all starters can finish the story without optional treasure, gear, or adop
       state = updatePosition(state, { regionId: region.id, x: 220, y: 760 });
       for (const encounterId of region.encounterIds) state = campaignBattle(state, encounterId).state;
     }
-    assert.equal(state.completed.length, 12, `${starter} can complete the whole adventure`);
+    assert.equal(state.completed.length, 21, `${starter} can complete the whole adventure`);
     assert.equal(state.ownedGear.length, 1);
     assert.equal(state.party.length, 2, 'First guardian automatically fills the second companion slot');
   }

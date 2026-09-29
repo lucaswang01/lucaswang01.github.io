@@ -1,5 +1,6 @@
 // Original illustrations for Math Go. All artwork is drawn locally with SVG.
 // Named groups make each little dinosaur easy to animate with CSS.
+import { NEW_DINOS, HAIR_COLORS } from './galaxy.mjs';
 const esc = (value) => String(value).replace(/[&<>"']/g, (char) => ({'&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'}[char]));
 const outline = '#243f40';
 const palettes = {
@@ -119,18 +120,59 @@ function ember(p) {
     <g class="dino-head"><path d="M120 77l-6-19l19 3l3-19l19 12l13-12l10 20" fill="${p.accent}"/><path d="M123 75q2-26 38-25q29-2 36 22l8 13q26-1 24 22q-2 21-31 24q-45 5-65-18l-11-17Z" fill="${p.skin}"/><path d="M168 119q26 10 48-3" fill="none" stroke-width="2.5" stroke-linecap="round"/><path d="M180 122l5 8l5-7m11-2l6 6l3-9" fill="#fff5dc" stroke-width="1.7"/>${eye(174,86)}<ellipse cx="193" cy="106" rx="10" ry="5" fill="#eec095" stroke="none"/><path d="M219 96h1" stroke-width="3" stroke-linecap="round"/><path d="M134 71l9-4m8-2l7 1" stroke="${p.shade}" stroke-width="3" stroke-linecap="round"/></g>`;
 }
 
+function spaceDino(p, shape) {
+  const low = shape === 'frill' || shape === 'dome';
+  const crest = shape === 'dome' ? `<path d="M143 89Q130 24 178 25Q216 25 210 86" fill="${p.accent}"/><path d="M151 61Q171 32 197 60" fill="none" stroke="#fff9d0" stroke-width="5"/>`
+    : shape === 'crest' ? `<path d="M145 80Q131 7 158 14L172 74M174 73Q165 7 186 17L198 82" fill="${p.accent}"/>`
+    : shape === 'frill' ? `<path d="M151 104Q112 89 118 57Q126 29 155 35Q183 29 202 51L196 111" fill="${p.accent}"/><path d="M139 50L154 68L174 46L183 78" fill="none" stroke="${p.light}" stroke-width="7"/>`
+    : `<path d="M142 61l-13-24l23 10l4-27l16 27l21-10l-3 33" fill="${p.accent}"/>`;
+  return `<g class="dino-tail"><path d="M104 147Q42 178 12 112Q11 163 64 177L117 170" fill="${p.shade}"/>${shape === 'raptor' ? `<path d="M28 145L9 140L21 128L5 118L24 116L15 102L40 128" fill="${p.accent}"/>` : ''}</g>
+    ${shape === 'sail' ? `<g class="dino-sail"><path d="M55 139L63 73L84 54L105 44L127 61L153 103L159 140Z" fill="${p.accent}"/><path d="M72 134L84 57M97 134L105 47M123 137L128 66" fill="none" stroke="${p.shade}" stroke-width="3"/></g>` : ''}
+    <g class="dino-body"><path d="M97 145L82 184L108 191L128 161M139 147L152 186L181 187L166 149" fill="${p.shade}"/>
+    <ellipse cx="111" cy="139" rx="${low ? 60 : 43}" ry="${low ? 34 : 43}" fill="${p.skin}"/>
+    <ellipse cx="127" cy="144" rx="25" ry="28" fill="${p.light}" stroke="none"/>
+    <path d="M109 155L98 185L120 191L137 165" fill="${p.skin}"/>${toes(105,186,3)}
+    ${shape === 'feather' ? `<path d="M91 101L69 113L76 122L58 136L78 132L62 154L91 139M136 109L157 133L184 134L168 143L184 147L164 153L178 157L153 162L128 129" fill="${p.light}"/>` : `<path d="M128 108L149 132L170 124L181 132L164 143L143 145L119 127" fill="${p.skin}"/>`}
+    <circle cx="89" cy="133" r="5" fill="${p.accent}" stroke="none"/><circle cx="96" cy="117" r="4" fill="${p.accent}" stroke="none"/></g>
+    <g class="dino-head">${crest}<path d="M125 116L132 76Q136 51 169 53Q197 51 206 78L219 84Q236 91 228 111Q216 126 189 118L160 101L155 137" fill="${p.skin}"/>
+    ${shape === 'sail' ? `<path d="M199 82L235 88L235 107L206 114" fill="${p.skin}"/>` : ''}
+    ${eye(179,81)}<ellipse cx="195" cy="102" rx="8" ry="5" fill="${p.accent}" stroke="none"/>
+    <path d="M210 110q11 0 14-5m-3-12h1" fill="none" stroke-width="2.4"/>
+    ${shape === 'raptor' ? `<path d="M148 76L137 69M144 88L129 84" stroke="${p.light}" stroke-width="5"/>` : ''}</g>`;
+}
+
 const painters = { sprig, brook, pebble, breeze, bloom, crystal, ember };
 const names = { sprig: 'Sprig, the leafy triceratops', brook: 'Brook, the river longneck', pebble: 'Pebble, the rock ankylosaurus', breeze: 'Fernwing, the forest pterosaur', bloom: 'Blossom, the flower parasaurolophus', crystal: 'Prismback, the crystal stegosaurus', ember: 'Suncrest, the sunny tyrannosaurus' };
+
+for (const pet of NEW_DINOS) { palettes[pet.id] = pet; painters[pet.id] = (palette) => spaceDino(palette, pet.shape); names[pet.id] = `${pet.name}, the ${pet.species}`; }
 
 export function dinoArt(id, { variant = 'normal', className = '', label = '' } = {}) {
   const key = Object.hasOwn(painters, id) ? id : 'sprig';
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" class="dino-art dino-${key} variant-${esc(variant)} ${esc(className)}" role="img" aria-label="${esc(label || names[key])}"><ellipse class="dino-shadow" cx="123" cy="195" rx="70" ry="10" fill="#243f40" opacity=".1"/><g fill="none" stroke="${outline}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round">${painters[key](palettes[key])}</g></svg>`;
 }
 
-export function heroArt({ color = 'teal', gear = 'field' } = {}) {
+export function heroArt({ color = 'teal', gear = 'field', hair = 'hat', hairColor = 'brown', outfit = 'explorer', weapon = 'staff' } = {}) {
   const coats = { teal: '#558f87', rust: '#bc7959', plum: '#9283a5', gold: '#cca55e', blue: '#759ab7' };
   const coat = coats[color] || coats.teal;
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" class="hero-art gear-${esc(gear)}" role="img" aria-label="Your dinosaur explorer"><ellipse cx="120" cy="203" rx="47" ry="8" fill="#243f40" opacity=".12"/><g stroke="${outline}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M77 117q-14-13-21 3l-1 42q7 11 29 4" fill="#ac7958"/><path d="M97 156l-5 34q-18 2-15 12h33l9-40m9-1l4 35h28q8-9-9-13l-5-29" fill="#687674"/><path d="M88 114q31-12 60 1l13 43q-38 13-81 0Z" fill="${coat}"/><path d="M92 118l-18 27l-12-9q-10-5-14 5q-1 8 9 13l16 8q9 4 16-8l10-15m46-20l15 29l15-7q13-4 13 8q-1 8-11 11l-18 5q-7 1-11-7l-10-17" fill="${coat}"/><path d="M105 121l12 18l13-20" fill="#edc77e"/><path d="M83 158q35 8 72 0" fill="none" stroke="#bc9e74" stroke-width="7"/><rect x="119" y="153" width="12" height="12" rx="2" fill="#e8c47c"/><path d="M107 101v20q14 12 26-1v-19" fill="#d7a17d"/><ellipse cx="117" cy="76" rx="37" ry="39" fill="#e6b58e"/><path d="M81 83q-8-46 32-48q41-1 41 42l-12-6l-5-15q-13 18-41 12l-3 16" fill="#655044"/><path d="M68 56q3-19 38-20q44-1 61 21q-34 15-99-1" fill="#dcc28e"/><path d="M83 48l8-22q27-15 49 3l10 22" fill="#e8d5ac"/><path d="M86 44q31 9 60 2" fill="none" stroke="#6e9380" stroke-width="7"/><ellipse cx="102" cy="84" rx="4" ry="5" fill="${outline}" stroke="none"/><ellipse cx="133" cy="84" rx="4" ry="5" fill="${outline}" stroke="none"/><path d="M109 100q10 8 20-2" fill="none" stroke-width="2.5"/><path d="M90 96h8m37 0h8" stroke="#cd8e77" stroke-width="5"/><path d="M90 120l-6 34" stroke="#bc9e74" stroke-width="5"/><path d="M176 150l-2 51" stroke="#8a684f" stroke-width="5"/><path d="M175 150q14-14 22-5q-1 12-22 13" fill="#87a966" stroke-width="2"/></g></svg>`;
+  const hairInk = HAIR_COLORS.find((item) => item.id === hairColor)?.color || '#655044';
+  const styles = {
+    hat: `<path d="M81 83q-8-46 32-48q41-1 41 42l-12-6l-5-15q-13 18-41 12l-3 16" fill="${hairInk}"/><path d="M68 56q3-19 38-20q44-1 61 21q-34 15-99-1" fill="#dcc28e"/><path d="M83 48l8-22q27-15 49 3l10 22" fill="#e8d5ac"/><path d="M86 44q31 9 60 2" fill="none" stroke="#6e9380" stroke-width="7"/>`,
+    swoop: `<path d="M79 86Q65 34 108 33Q154 20 156 79L143 73L139 55Q113 82 87 65L91 85" fill="${hairInk}"/><path d="M91 45Q110 31 130 39" fill="none" stroke="#ffffff44" stroke-width="4"/>`,
+    curls: `<path d="M81 87L77 54Q76 28 115 32Q156 22 158 62L151 82L140 63L93 61L91 86" fill="${hairInk}"/>${[81,96,113,130,147].map((x,i) => `<circle cx="${x}" cy="${45-(i%2)*7}" r="14" fill="${hairInk}"/>`).join('')}`,
+    spikes: `<path d="M80 86L76 55L62 45L85 44L82 24L103 35L114 13L126 33L146 19L145 42L162 43L152 77L140 68L133 51L102 61L93 85" fill="${hairInk}"/>`,
+    ponytail: `<path d="M79 85Q65 37 109 33Q151 29 157 77L143 67L137 54Q116 68 94 62L92 87" fill="${hairInk}"/><path d="M79 58Q53 35 48 69L40 112Q63 123 76 90L88 65" fill="${hairInk}"/><path d="M66 57L78 65" stroke="#e6c177" stroke-width="7"/>`,
+  };
+  const uniform = outfit === 'space' ? `<path d="M88 113L102 118L103 149L142 149L148 114L157 160L82 160Z" fill="#deedf0"/><rect x="111" y="126" width="25" height="16" rx="4" fill="#37566e"/><circle cx="117" cy="133" r="3" fill="#80e6d4"/><path d="M85 172H109M132 172H153" stroke="#dfe9f0" stroke-width="9"/>`
+    : outfit === 'armor' ? `<path d="M88 114L117 124L148 114L144 149L117 161L91 147Z" fill="#b4c7cc"/><path d="M117 128v23M94 136h44" stroke="#e8e1b6" stroke-width="5"/><path d="M80 112L93 121L84 135L69 130M147 114L164 117L169 132L155 138" fill="#c5d6d3"/>`
+    : outfit === 'mage' ? `<path d="M91 142L77 194Q119 208 161 194L147 141" fill="${coat}"/><path d="M120 145v54M79 193q40 10 80 0" fill="none" stroke="#e9cd8a" stroke-width="5"/><path d="M114 166l6-11l5 11l12 2l-9 8l2 12l-10-6l-11 6l2-12l-9-8Z" fill="#f4d898" stroke-width="1"/>` : '';
+  const tool = {
+    staff: `<path d="M176 150l-2 51" stroke="#8a684f" stroke-width="5"/><path d="M175 150q14-14 22-5q-1 12-22 13" fill="#87a966"/>`,
+    flameblade: `<path d="M174 151L195 82L205 72L210 88L186 158Z" fill="#ffdca0"/><path d="M181 146L203 87" stroke="#eb815d" stroke-width="4"/><path d="M165 148L192 158M177 155L171 179" stroke="#be9467" stroke-width="6"/>`,
+    tidewand: `<path d="M179 143L181 200" stroke="#accfd3" stroke-width="6"/><path d="M180 105Q153 134 180 145Q207 132 180 105Z" fill="#7adee5"/><circle cx="180" cy="130" r="6" fill="#e5fff9"/>`,
+    stormbow: `<path d="M180 101Q221 148 180 195" fill="none" stroke="#d7b783" stroke-width="7"/><path d="M180 101L179 195M173 151L214 149" stroke="#eff3da" stroke-width="2"/><path d="M213 144L226 149L214 155" fill="#a9e5f1"/>`,
+    moonhammer: `<path d="M179 134L174 198" stroke="#968bba" stroke-width="7"/><path d="M155 103L201 108L207 135L193 146L152 138L148 115Z" fill="#bac0e3"/><path d="M167 113L184 111L193 125L177 133Z" fill="#e8f4ef"/>`,
+  };
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 220" class="hero-art gear-${esc(gear)} hair-${esc(hair)} outfit-${esc(outfit)} weapon-${esc(weapon)}" role="img" aria-label="Your customized explorer"><ellipse cx="120" cy="203" rx="47" ry="8" fill="#243f40" opacity=".12"/><g stroke="${outline}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M77 117q-14-13-21 3l-1 42q7 11 29 4" fill="#ac7958"/><path d="M97 156l-5 34q-18 2-15 12h33l9-40m9-1l4 35h28q8-9-9-13l-5-29" fill="#687674"/><path d="M88 114q31-12 60 1l13 43q-38 13-81 0Z" fill="${coat}"/>${uniform}<path d="M92 118l-18 27l-12-9q-10-5-14 5q-1 8 9 13l16 8q9 4 16-8l10-15m46-20l15 29l15-7q13-4 13 8q-1 8-11 11l-18 5q-7 1-11-7l-10-17" fill="${coat}"/><path d="M105 121l12 18l13-20" fill="#edc77e"/><path d="M83 158q35 8 72 0" fill="none" stroke="#bc9e74" stroke-width="7"/><rect x="119" y="153" width="12" height="12" rx="2" fill="#e8c47c"/><path d="M107 101v20q14 12 26-1v-19" fill="#d7a17d"/><ellipse cx="117" cy="76" rx="37" ry="39" fill="#e6b58e"/>${styles[hair] || styles.hat}<ellipse cx="102" cy="84" rx="4" ry="5" fill="${outline}" stroke="none"/><ellipse cx="133" cy="84" rx="4" ry="5" fill="${outline}" stroke="none"/><path d="M109 100q10 8 20-2" fill="none" stroke-width="2.5"/><path d="M90 96h8m37 0h8" stroke="#cd8e77" stroke-width="5"/>${tool[weapon] || tool.staff}</g></svg>`;
 }
 
 const icons = {

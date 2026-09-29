@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { WORLD_CONFIG, getWorldObjects, canMove, movePosition } from '../world.mjs';
 
 test('each region has a walkable spawn, two chests, a ranger and the campaign encounters', () => {
-  assert.deepEqual(Object.keys(WORLD_CONFIG), ['fern', 'river', 'crystal', 'summit']);
+  assert.deepEqual(Object.keys(WORLD_CONFIG), ['fern', 'river', 'crystal', 'summit', 'luna', 'cinder', 'zephyr']);
   for (const [id, region] of Object.entries(WORLD_CONFIG)) {
     assert.equal(region.width, 1600);
     assert.equal(region.height, 1000);

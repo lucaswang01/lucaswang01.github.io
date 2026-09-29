@@ -1,6 +1,7 @@
 // Math Go: original, local-first party RPG. All transitions return fresh state.
 import { TOPICS, DINOS as LEGACY_DINOS, HABITATS, GEARS, createQuestion, createSave, validateSave } from './core.mjs';
-export { TOPICS, GEARS };
+import { NEW_DINOS, SPACE_REGIONS, PLANETS, WEAPONS, HAIRSTYLES, HAIR_COLORS, OUTFITS, CLOTH_COLORS, DEFAULT_LOOK } from './galaxy.mjs';
+export { TOPICS, GEARS, PLANETS, WEAPONS, HAIRSTYLES, HAIR_COLORS, OUTFITS, CLOTH_COLORS, DEFAULT_LOOK };
 
 export const ADOPTION_COST = 90;
 export const ELEMENTS = Object.freeze([
@@ -13,7 +14,7 @@ export const ELEMENTS = Object.freeze([
   { id: 'sun', name: 'Sun', color: '#ffe185', strongAgainst: 'stone', weakAgainst: 'air' },
 ]);
 
-export const DINOS = Object.freeze(LEGACY_DINOS.map((dino) => ({
+export const DINOS = Object.freeze([...LEGACY_DINOS.map((dino) => ({
   ...dino,
   element: dino.id === 'breeze' ? 'air' : dino.id === 'ember' ? 'fire' : dino.element,
   description: {
@@ -24,15 +25,15 @@ export const DINOS = Object.freeze(LEGACY_DINOS.map((dino) => ({
     bloom: 'A flower-crested parasaurolophus. Water magic helps the whole team recover.',
     crystal: 'A shimmering stegosaurus. Crystal armor and heavy stone strikes stop foes.',
     ember: 'A golden-crested tyrannosaur. Fiery attacks leave glowing embers behind.',
-  }[dino.id],
-})));
+  }[dino.id], planet: 'bramble',
+})), ...NEW_DINOS]);
 
-export const REGIONS = Object.freeze(HABITATS.map((habitat, index) => ({
+export const REGIONS = Object.freeze([...HABITATS.map((habitat, index) => ({
   id: habitat.id, name: habitat.name, subtitle: habitat.subtitle,
   description: habitat.description, element: ['leaf', 'water', 'stone', 'fire'][index],
   level: index * 3 + 1, bossId: `${habitat.id}-3`,
-  encounterIds: habitat.encounters.map((encounter) => encounter.id),
-})));
+  encounterIds: habitat.encounters.map((encounter) => encounter.id), planetId: 'bramble',
+})), ...SPACE_REGIONS]);
 
 const teams = [
   [['sprig'], ['sprig', 'pebble'], ['breeze', 'sprig']],
@@ -41,13 +42,13 @@ const teams = [
   [['ember', 'breeze'], ['ember', 'crystal'], ['ember', 'crystal', 'breeze']],
 ];
 export const ENCOUNTERS = Object.freeze(REGIONS.flatMap((region, index) => [
-  ...HABITATS[index].encounters.map((encounter, stage) => ({
+  ...(HABITATS[index]?.encounters || region.names.map((name, i) => ({ id: region.encounterIds[i], name, boss: i === 2 }))).map((encounter, stage) => ({
     id: encounter.id, regionId: region.id, name: encounter.name,
     description: encounter.boss ? 'Free the guardian from the drifting gloam and restore this beacon.' : 'Dispel the gloam surrounding these dinosaurs.',
-    boss: encounter.boss, roamer: false, level: index * 3 + stage + 1,
-    dinoIds: teams[index][stage],
+    boss: encounter.boss, roamer: false, level: region.level + stage,
+    dinoIds: (teams[index] || region.teams)[stage],
   })),
-  { id: `${region.id}-roam`, regionId: region.id, name: 'Wandering gloam pack', description: 'A repeatable wild encounter. Train your team and earn supplies.', boss: false, roamer: true, level: index * 3 + 2, dinoIds: teams[index][1] },
+  { id: `${region.id}-roam`, regionId: region.id, name: 'Wandering gloam pack', description: 'A repeatable wild encounter. Train your team and earn supplies.', boss: false, roamer: true, level: region.level + 1, dinoIds: (teams[index] || region.teams)[1] },
 ]));
 
 function spell(id, name, element, power, cost, cooldown, target, effect, level, description) {
@@ -81,6 +82,19 @@ export const SPELLS = Object.freeze([
   spell('prism', 'Prismatic Comet', 'neutral', 43, 6, 3, 'all', 'damage', 8, 'Your ultimate spell: a rainbow comet strikes every foe.'),
 ]);
 
+export const WEAPON_SPELLS = Object.freeze([
+  spell('saber-comet', 'Comet Slash', 'fire', 32, 3, 1, 'enemy', 'burn', 2, 'A fiery saber slash that leaves two rounds of embers.'),
+  spell('phoenix-cut', 'Phoenix Arc', 'sun', 28, 4, 1, 'all', 'damage', 4, 'Sweep your glowing saber through every foe.'),
+  spell('tide-heart', 'Tideheart', 'water', 45, 3, 1, 'ally', 'regen', 2, 'A tidecaller’s healing spell with two rounds of recovery.'),
+  spell('coral-wave', 'Coral Wave', 'water', 29, 4, 1, 'all', 'damage', 4, 'Send a curling coral wave toward every enemy.'),
+  spell('thunder-arrow', 'Thunder Arrow', 'air', 42, 3, 1, 'enemy', 'damage', 4, 'Fire a crackling arrow at one chosen foe.'),
+  spell('meteor-volley', 'Meteor Volley', 'sun', 35, 5, 2, 'all', 'damage', 6, 'Rain star-tipped arrows across the enemy team.'),
+  spell('lunar-aegis', 'Lunar Aegis', 'stone', 68, 2, 2, 'ally', 'shield', 6, 'Build a moonstone shield around a friend.'),
+  spell('crater-crash', 'Crater Crash', 'stone', 52, 4, 1, 'enemy', 'damage', 6, 'Bring your moon hammer down with a mighty ring of stone.'),
+]);
+export const TAME_SPELL = Object.freeze(spell('gentle-tap', 'Gentle Tap', 'neutral', 16, 1, 0, 'enemy', 'gentle', 1, 'A careful tap that leaves at least 1 HP and calms burning embers. Prepare a wild dinosaur for capture.'));
+export const STORY_COUNT = ENCOUNTERS.filter((item) => !item.roamer).length;
+
 // A shared reward for three solved puzzles, including successful retries.
 export const TEAM_SPELL = Object.freeze(spell('starburst', 'Dino Starburst', 'sun', 32, 0, 0, 'all', 'damage', 1, 'Your whole team calls a shower of stars! Hits every enemy. Uses 3 math stars and this teammate’s turn.'));
 
@@ -92,9 +106,11 @@ export function enemyIntent(battle, enemy) {
   if (enemy.hp <= 0) return null;
   const allies = battle.allies.filter((ally) => ally.hp > 0);
   const guardian = encounterFor(battle.encounterId).boss && enemy.id === 'enemy-1';
-  const roar = guardian && battle.round % 3 === 0;
+  const area = REGIONS.find((item) => item.id === battle.regionId);
+  const roar = guardian && battle.round % (area.bossPeriod || 3) === 0;
+  const enraged = guardian && area.planetId !== 'bramble' && enemy.hp <= enemy.maxHp / 2;
   const target = allies[(battle.round + Number(enemy.id.slice(-1)) - 2) % allies.length];
-  return { name: roar ? 'Guardian roar' : `${ELEMENTS.find((item) => item.id === enemy.element).name} strike`, roar, targets: roar ? allies.map((ally) => ally.id) : target ? [target.id] : [] };
+  return { enraged, name: roar ? (area.bossMove || 'Guardian roar') : `${ELEMENTS.find((item) => item.id === enemy.element).name} strike`, roar, targets: roar ? allies.map((ally) => ally.id) : target ? [target.id] : [] };
 }
 
 const STARTERS = ['sprig', 'brook', 'pebble'];
@@ -121,7 +137,9 @@ function worldStart(regionId = 'fern') { return { regionId, x: 220, y: 760, trea
 export function getLevel(state) { return Math.min(20, 1 + Math.floor(state.xp / 100)); }
 export function isRegionUnlocked(state, id) {
   const index = REGION_IDS.indexOf(id);
-  return index >= 0 && REGIONS.slice(0, index).every((region) => region.encounterIds.every((encounterId) => state.completed.includes(encounterId)));
+  if (index < 0) return false;
+  if (REGIONS[index].requires) return state.completed.includes(REGIONS[index].requires);
+  return REGIONS.slice(0, index).every((region) => region.encounterIds.every((encounterId) => state.completed.includes(encounterId)));
 }
 export function isEncounterUnlocked(state, id) {
   const encounter = ENCOUNTERS.find((item) => item.id === id);
@@ -144,14 +162,17 @@ export function partyUnits(state) {
 export function knownSpells(state, actorId = 'hero') {
   const element = actorId === 'hero' ? null : DINOS.find((dino) => dino.id === actorId)?.element;
   if (actorId !== 'hero' && (!state.party.includes(actorId) || !element)) return [];
-  return SPELLS.filter((spell) => spell.level <= getLevel(state) && (actorId === 'hero' || spell.element === element || spell.element === 'neutral'));
+  const weapon = WEAPONS.find((item) => item.id === (state.weapon || 'staff'));
+  const regular = SPELLS.filter((spell) => spell.level <= getLevel(state) && (actorId === 'hero' ? !weapon.elements || spell.element === 'neutral' || weapon.elements.includes(spell.element) : spell.element === element || spell.element === 'neutral'));
+  return actorId === 'hero' ? [...regular, TAME_SPELL, ...WEAPON_SPELLS.filter((spell) => weapon.signatures.includes(spell.id) && spell.level <= getLevel(state))] : [...regular, TAME_SPELL];
 }
 
 function enemyUnits(encounter) {
   return encounter.dinoIds.map((id, index) => {
     const dino = DINOS.find((item) => item.id === id);
     const boss = encounter.boss && index === 0;
-    return unit({ id: `enemy-${index + 1}`, artId: id, name: `${boss ? 'Gloam Guardian' : 'Gloam'} ${dino.name}`, element: dino.element, level: encounter.level, maxHp: 42 + encounter.level * 10 + (boss ? 55 : 0), power: 7 + encounter.level * 2 + (boss ? 4 : 0) });
+    const area = REGIONS.find((item) => item.id === encounter.regionId);
+    return unit({ id: `enemy-${index + 1}`, artId: id, name: boss && area.bossName ? area.bossName : `${boss ? 'Gloam Guardian' : 'Gloam'} ${dino.name}`, element: dino.element, level: encounter.level, maxHp: 42 + encounter.level * 10 + (boss ? area.bossName ? 110 : 55 : 0), power: 7 + encounter.level * 2 + (boss ? 4 : 0) });
   });
 }
 
@@ -184,13 +205,30 @@ function normalizeUnits(rawUnits, templates, state, label) {
 export function normalizeGame(raw) {
   if (raw?.version === 1) {
     const legacy = validateSave(raw);
-    return { ...legacy, version: 2, battle: null, party: [legacy.equipped], world: worldStart() };
+    return normalizeGame({ ...legacy, version: 2, battle: null, party: [legacy.equipped], world: worldStart() });
   }
-  object(raw, ['format', 'version', 'player', 'topic', 'xp', 'coins', 'completed', 'collection', 'equipped', 'gear', 'ownedGear', 'stats', 'settings', 'battle', 'party', 'world'], 'save file');
+  object(raw, ['format', 'version', 'player', 'topic', 'xp', 'coins', 'completed', 'collection', 'equipped', 'gear', 'ownedGear', 'stats', 'settings', 'battle', 'party', 'world', 'appearance', 'weapon', 'caught'], 'save file');
   if (raw.format !== 'math-go' || raw.version !== 2) fail('Choose a supported Math Go save file (version 1 or 2).');
-  const { party: rawParty, world: rawWorld, ...legacyFields } = raw;
-  // Reuse the original strict allowlist and progression/statistics validation.
-  const state = { ...validateSave({ ...legacyFields, version: 1, battle: null }), version: 2 };
+  const { party: rawParty, world: rawWorld, appearance = DEFAULT_LOOK, weapon = 'staff', caught = [], ...legacyFields } = raw;
+  const completed = list(raw.completed, CAMPAIGN, 'completed adventures');
+  const collection = list(raw.collection, DINOS.map((item) => item.id), 'dinosaur collection');
+  const captured = list(caught, DINOS.map((item) => item.id), 'captured dinosaurs');
+  const oldCompleted = completed.filter((id) => HABITATS.some((area) => area.encounters.some((item) => item.id === id)));
+  const oldEarned = LEGACY_DINOS.filter((item) => item.unlockHabitat && HABITATS.find((area) => area.id === item.unlockHabitat).encounters.every((fight) => oldCompleted.includes(fight.id))).map((item) => item.id);
+  // Reuse trusted validation for names, questions, settings, gear and math statistics.
+  // Galaxy progress and capture provenance are validated separately below.
+  const state = { ...validateSave({ ...legacyFields, version: 1, battle: null, completed: oldCompleted, collection: [...new Set([raw.player?.starter, ...oldEarned])], equipped: raw.player?.starter }), version: 2, completed, collection, caught: captured };
+  for (const area of REGIONS) {
+    if (area.encounterIds.some((id) => completed.includes(id)) && !isRegionUnlocked(state, area.id)) fail('A completed adventure is on a locked planet or region.');
+    if (completed.includes(area.bossId) && !area.encounterIds.slice(0, 2).every((id) => completed.includes(id))) fail('Clear the trail encounters before the boss.');
+  }
+  const earned = [state.player.starter, ...DINOS.filter((item) => item.unlockHabitat && REGIONS.find((area) => area.id === item.unlockHabitat).encounterIds.every((id) => completed.includes(id))).map((item) => item.id)];
+  if (earned.some((id) => !collection.includes(id)) || collection.some((id) => !STARTERS.includes(id) && !earned.includes(id) && !captured.includes(id))) fail('The dinosaur collection does not match earned or captured friends.');
+  for (const id of captured) if (!collection.includes(id) || !ENCOUNTERS.some((fight) => isEncounterUnlocked(state, fight.id) && fight.dinoIds.some((dinoId, index) => dinoId === id && !(fight.boss && index === 0)))) fail('A captured dinosaur is not available on your unlocked trails.');
+  state.equipped = choose(raw.equipped, collection, 'equipped friend');
+  object(appearance, ['hair', 'hairColor', 'outfit', 'color'], 'appearance');
+  state.appearance = { hair: choose(appearance.hair, HAIRSTYLES.map((item) => item.id), 'hairstyle'), hairColor: choose(appearance.hairColor, HAIR_COLORS.map((item) => item.id), 'hair color'), outfit: choose(appearance.outfit, OUTFITS.map((item) => item.id), 'outfit'), color: choose(appearance.color, CLOTH_COLORS.map((item) => item.id), 'clothes color') };
+  state.weapon = choose(weapon, WEAPONS.filter((item) => item.level <= getLevel(state)).map((item) => item.id), 'weapon');
   state.party = list(rawParty, state.collection, 'adventure party');
   if (state.party.length < 1 || state.party.length > 2 || state.equipped !== state.party[0]) fail('Choose one or two collected companions for your party.');
   object(rawWorld, ['regionId', 'x', 'y', 'treasures', 'talked'], 'world position');
@@ -200,7 +238,7 @@ export function normalizeGame(raw) {
   state.world = { regionId, x: coord(rawWorld.x, 1600), y: coord(rawWorld.y, 1000), treasures: list(rawWorld.treasures, TREASURES, 'opened chests'), talked: list(rawWorld.talked, RANGERS, 'ranger conversations') };
   if ([...state.world.treasures, ...state.world.talked].some((id) => !isRegionUnlocked(state, regionForId(id)))) fail('A saved discovery is in a locked region.');
   if (raw.battle !== null) {
-    const battle = object(raw.battle, ['encounterId', 'regionId', 'round', 'activeId', 'acted', 'mana', 'maxMana', 'question', 'allies', 'enemies', 'log', 'stars'], 'battle');
+    const battle = object(raw.battle, ['encounterId', 'regionId', 'round', 'activeId', 'acted', 'mana', 'maxMana', 'question', 'allies', 'enemies', 'log', 'stars', 'captureAttempts', 'captured'], 'battle');
     const encounter = encounterFor(battle.encounterId);
     if (!isEncounterUnlocked(state, encounter.id) || encounter.regionId !== battle.regionId || state.world.regionId !== battle.regionId) fail('The battle is not available in this region.');
     if (battle.maxMana !== 12) fail('Invalid maximum mana.');
@@ -210,7 +248,12 @@ export function normalizeGame(raw) {
     const acted = list(battle.acted, allies.map((ally) => ally.id), 'turn order');
     const activeId = choose(battle.activeId, allies.filter((ally) => ally.hp > 0 && !acted.includes(ally.id)).map((ally) => ally.id), 'active teammate');
     if (!Array.isArray(battle.log) || battle.log.length > 8 || battle.log.some((line) => typeof line !== 'string' || line.length > 250 || /[<>\u0000-\u001f]/.test(line))) fail('Invalid battle log.');
-    state.battle = { encounterId: encounter.id, regionId: encounter.regionId, round: integer(battle.round, 1, 10_000, 'battle round'), activeId, acted, mana: integer(battle.mana, 0, 12, 'mana'), maxMana: 12,
+    const attempts = battle.captureAttempts === undefined ? {} : battle.captureAttempts;
+    object(attempts, enemies.map((item) => item.id), 'capture attempts');
+    const captureAttempts = Object.fromEntries(Object.entries(attempts).map(([id, value]) => [id, integer(value, 0, 10, 'capture attempts')]));
+    const rescued = list(battle.captured === undefined ? [] : battle.captured, enemies.map((item) => item.id), 'rescued enemies');
+    if (rescued.some((id) => { const enemy = enemies.find((item) => item.id === id); return enemy.hp !== 0 || !captured.includes(enemy.artId) || encounter.boss && id === 'enemy-1'; })) fail('Invalid rescued enemy.');
+    state.battle = { captureAttempts, captured: rescued, encounterId: encounter.id, regionId: encounter.regionId, round: integer(battle.round, 1, 10_000, 'battle round'), activeId, acted, mana: integer(battle.mana, 0, 12, 'mana'), maxMana: 12,
       stars: integer(battle.stars === undefined ? 0 : battle.stars, 0, 3, 'math stars'), question: normalizeQuestion(battle.question, state), allies, enemies, log: [...battle.log] };
   }
   return state;
@@ -288,9 +331,29 @@ export function startBattle(raw, encounterId, rng = Math.random) {
   const encounter = encounterFor(encounterId);
   if (!isEncounterUnlocked(state, encounterId)) fail(encounter.boss ? 'Clear the two trail encounters before challenging the guardian.' : 'Restore the previous region to open this trail.');
   if (state.world.regionId !== encounter.regionId) fail('Travel to this encounter’s region first.');
-  state.battle = { encounterId, regionId: encounter.regionId, round: 1, activeId: 'hero', acted: [], mana: 0, maxMana: 12, stars: 0,
+  const area = REGIONS.find((item) => item.id === encounter.regionId);
+  const bossHints = [`${area.bossMove || 'Guardian roar'} hits the whole team every ${area.bossPeriod === 2 ? 'second' : 'third'} round. Shield or heal your team!`];
+  if (area.bossName) bossHints.push('This guardian powers up below half health. Watch its orange status card!');
+  if (area.id === 'zephyr') bossHints.push('The Tempest Crown also heals itself every third round. Focus your strongest spells on it.');
+  state.battle = { encounterId, regionId: encounter.regionId, round: 1, activeId: 'hero', acted: [], mana: 0, maxMana: 12, stars: 0, captureAttempts: {}, captured: [],
     question: { ...createQuestion(state.topic, rng), attempted: false }, allies: partyUnits(state), enemies: enemyUnits(encounter),
-    log: [encounter.boss ? 'The guardian prepares a team-wide roar every third round. Shield or heal your team!' : 'Answer a math question to charge mana. Your whole team shares this energy.'] };
+    log: encounter.boss ? bossHints : ['Answer a math question to charge mana. Your whole team shares this energy.'] };
+  return state;
+}
+
+export function changeQuestion(raw, rng = Math.random) {
+  const state = normalizeGame(raw);
+  if (!state.battle) fail('Meet an enemy before choosing a battle question.');
+  const previous = state.battle.question.prompt;
+  let question;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    question = createQuestion(state.topic, rng);
+    if (question.prompt !== previous) break;
+  }
+  // Always show a different problem, even if a random source keeps repeating.
+  if (question.prompt === previous) question = createQuestion(state.topic, () => 0);
+  if (question.prompt === previous) question = createQuestion(state.topic, () => .999);
+  state.battle.question = { ...question, attempted: false };
   return state;
 }
 
@@ -382,18 +445,21 @@ function enemyRound(state, events, timeline) {
     const alive = battle.allies.filter((ally) => ally.hp > 0);
     if (!alive.length) break;
     const isGuardian = encounter.boss && enemy.id === 'enemy-1';
-    if (isGuardian && battle.round % 3 === 0) {
+    const intent = enemyIntent(battle, enemy);
+    const area = REGIONS.find((item) => item.id === battle.regionId);
+    const strength = intent.enraged ? 1.3 : 1;
+    if (isGuardian && intent.roar) {
       const labels = {};
       for (const target of alive) {
-        const { dealt, absorbed } = damageUnit(target, Math.round(enemy.power * 0.85));
-        events.push(`Guardian roar! ${target.name} takes ${dealt}${absorbed ? ` (${absorbed} blocked)` : ''}.`);
+        const { dealt, absorbed } = damageUnit(target, Math.round(enemy.power * 0.85 * strength));
+        events.push(`${intent.name}! ${target.name} takes ${dealt}${absorbed ? ` (${absorbed} blocked)` : ''}.`);
         labels[target.id] = absorbed ? `−${dealt} · ${absorbed} blocked` : `−${dealt}`;
       }
-      recordFrame(timeline, battle, { name: 'Guardian roar!', element: 'air', kind: 'roar', casterId: enemy.id, targets: alive.map((ally) => ally.id), labels });
+      recordFrame(timeline, battle, { name: `${intent.name}!`, element: area.bossElement || 'air', kind: 'roar', casterId: enemy.id, targets: alive.map((ally) => ally.id), labels });
     } else {
       const index = (battle.round + Number(enemy.id.slice(-1)) - 2) % alive.length;
       const target = alive[index];
-      const hit = Math.round(enemy.power * elementMultiplier(enemy.element, target.element));
+      const hit = Math.round(enemy.power * strength * elementMultiplier(enemy.element, target.element));
       const { dealt, absorbed } = damageUnit(target, hit);
       events.push(`${enemy.name} hits ${target.name} for ${dealt}${absorbed ? ` (${absorbed} blocked)` : ''}.`);
       recordFrame(timeline, battle, { name: `${ELEMENTS.find((item) => item.id === enemy.element).name} strike`, element: enemy.element, kind: 'attack', casterId: enemy.id, targets: [target.id], labels: { [target.id]: absorbed ? `−${dealt} · ${absorbed} blocked` : `−${dealt}` } });
@@ -403,6 +469,11 @@ function enemyRound(state, events, timeline) {
         events.push('The guardian raises a crystal shield. Keep attacking to break it.');
         recordFrame(timeline, battle, { name: 'Guardian ward', element: 'stone', kind: 'shield', casterId: enemy.id, targets: [enemy.id], labels: { [enemy.id]: `+${gained} shield` } });
       }
+    }
+    if (isGuardian && battle.regionId === 'zephyr' && battle.round % 3 === 0 && enemy.hp > 0) {
+      const restored = healUnit(enemy, Math.ceil(enemy.maxHp * .08));
+      events.push(`${enemy.name} gathers cloudlight and restores ${restored} health.`);
+      recordFrame(timeline, battle, { name: 'Cloudlight renewal', element: 'air', kind: 'heal', casterId: enemy.id, targets: [enemy.id], labels: { [enemy.id]: `+${restored} HP` } });
     }
   }
   for (const ally of battle.allies) {
@@ -457,7 +528,9 @@ export function castSpell(raw, spellId, targetId) {
       labels[target.id] = `+${gained} shield`;
     } else {
       const multiplier = elementMultiplier(spell.element, target.element);
-      const { dealt, absorbed } = damageUnit(target, Math.round(power * multiplier));
+      const damage = Math.round(power * multiplier);
+      const { dealt, absorbed } = damageUnit(target, spell.effect === 'gentle' ? Math.min(damage, target.shield + target.hp - 1) : damage);
+      if (spell.effect === 'gentle') target.status.burn = 0;
       if (spell.effect === 'burn' && target.hp > 0) target.status.burn = 2;
       if (spell.effect === 'drain') healUnit(actor, Math.ceil(dealt / 4));
       events.push(`${actor.name} casts ${spell.name}: ${dealt} damage to ${target.name}${absorbed ? ` (${absorbed} shield blocked)` : ''}.${multiplier > 1 ? ' Element advantage!' : multiplier < 1 ? ' Resisted.' : ''}`);
@@ -466,7 +539,12 @@ export function castSpell(raw, spellId, targetId) {
   }
   recordFrame(timeline, battle, { name: spell.name, spellId, element: spell.element, kind: spellId === TEAM_SPELL.id ? 'ultimate' : spell.effect, casterId: actor.id, targets: targets.map((target) => target.id), labels });
   if (!battle.enemies.some((enemy) => enemy.hp > 0)) return winBattle(state, events, timeline);
-  battle.acted.push(actor.id);
+  return finishTurn(state, actor.id, events, timeline);
+}
+
+function finishTurn(state, actorId, events, timeline) {
+  const battle = state.battle;
+  battle.acted.push(actorId);
   let next = battle.allies.find((unit) => unit.hp > 0 && !battle.acted.includes(unit.id));
   if (!next) {
     enemyRound(state, events, timeline);
@@ -481,11 +559,49 @@ export function castSpell(raw, spellId, targetId) {
     battle.round += 1;
     battle.acted = [];
     next = battle.allies.find((ally) => ally.hp > 0);
-    if (encounterFor(battle.encounterId).boss && battle.round % 3 === 0) events.push('Warning: the guardian will roar at the whole team this round. Shield or heal now!');
+    if (battle.enemies.some((enemy) => enemyIntent(battle, enemy)?.roar)) events.push('Warning: the guardian prepares a team attack. Shield or heal now!');
   }
   battle.activeId = next.id;
   battle.log = events.slice(-8);
   return { state, events, timeline, outcome: 'ongoing' };
+}
+
+export function customizeExplorer(raw, appearance, weapon = raw.weapon) {
+  const state = normalizeGame(raw); noBattle(state);
+  return normalizeGame({ ...state, appearance, weapon });
+}
+
+export function captureInfo(state, enemyId) {
+  const battle = state.battle;
+  const enemy = battle?.enemies.find((item) => item.id === enemyId);
+  if (!enemy || enemy.hp <= 0) return { available: false, reason: 'Choose a wild dinosaur still in battle.' };
+  if (encounterFor(battle.encounterId).boss && enemy.id === 'enemy-1') return { available: false, reason: 'Guardians cannot be captured. Win their planet’s story to earn a friend.' };
+  if (state.collection.includes(enemy.artId)) return { available: false, reason: 'This dinosaur is already in your collection.' };
+  if (enemy.hp > Math.floor(enemy.maxHp * .3)) return { available: false, reason: 'Weaken this dinosaur to 30% health or less.' };
+  if (enemy.shield > 0) return { available: false, reason: 'Break its shield first.' };
+  const chance = Math.min(95, (enemy.hp <= enemy.maxHp * .15 ? 85 : 60) + (battle.captureAttempts?.[enemyId] || 0) * 15);
+  return { available: true, chance, cost: 3, reason: `${chance}% chance · 3 MP · uses your turn` };
+}
+
+export function captureEnemy(raw, enemyId, rng = Math.random) {
+  const state = normalizeGame(raw);
+  const info = captureInfo(state, enemyId);
+  if (!info.available) fail(info.reason);
+  if (state.battle.mana < info.cost) fail('Solve a math puzzle for 3 capture magic.');
+  const roll = rng();
+  if (!Number.isFinite(roll) || roll < 0 || roll >= 1) fail('Invalid capture roll.');
+  const battle = state.battle, actorId = battle.activeId;
+  const enemy = battle.enemies.find((item) => item.id === enemyId);
+  battle.mana -= info.cost;
+  battle.captureAttempts[enemyId] = Math.min(10, (battle.captureAttempts[enemyId] || 0) + 1);
+  const success = roll < info.chance / 100;
+  if (success) { state.collection.push(enemy.artId); state.caught.push(enemy.artId); enemy.hp = 0; battle.captured.push(enemyId); }
+  const name = DINOS.find((item) => item.id === enemy.artId).name;
+  const events = [success ? `${name} joined your collection! Choose your new friend on the Team page.` : `${name} bounced free! Your next capture chance is higher.`];
+  const timeline = [];
+  recordFrame(timeline, battle, { name: success ? `${name} befriended!` : 'Friend orb — try again!', element: 'neutral', kind: 'capture', casterId: actorId, targets: [enemyId], labels: { [enemyId]: success ? '♥ New friend!' : 'Bounced free!' }, success });
+  const result = !battle.enemies.some((item) => item.hp > 0) ? winBattle(state, events, timeline) : finishTurn(state, actorId, events, timeline);
+  return { ...result, capture: { success, id: enemy.artId, chance: info.chance } };
 }
 
 export function fleeBattle(raw) {

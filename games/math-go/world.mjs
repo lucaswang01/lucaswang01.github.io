@@ -1,13 +1,20 @@
 // A locally drawn, camera-following world. The renderer never changes save data.
 import { dinoArt, heroArt } from './art.mjs';
+import { REGIONS, ENCOUNTERS, isRegionUnlocked } from './rpg-core.mjs';
 
-const REGION_IDS = ['fern', 'river', 'crystal', 'summit'];
+const REGION_IDS = REGIONS.map((area) => area.id);
 const THEMES = {
   fern: { name: 'Fernwood Trail', ground: '#7edb69', light: '#b4ee7f', dark: '#3ca85e', leaf: '#168a61', leafLight: '#55ca72', path: '#ffe2a6', water: '#20cce0', glow: '#e6ff78', canopy: ['#54c96f', '#74d956', '#e071bd', '#55bee2'] },
   river: { name: 'Ripple River', ground: '#72d99a', light: '#a9efaa', dark: '#2aa07f', leaf: '#087f78', leafLight: '#45cba2', path: '#ffe1ae', water: '#15cae2', glow: '#8dffff', canopy: ['#3fc59d', '#55cf79', '#63bee5', '#e58ac7'] },
   crystal: { name: 'Crystal Hollow', ground: '#75c9ac', light: '#a9e3ba', dark: '#398e88', leaf: '#396f91', leafLight: '#718ed2', path: '#ead7be', water: '#3f9fe1', glow: '#f3b4ff', canopy: ['#5b93d4', '#7f7ed1', '#bd70ca', '#49b69b'] },
   summit: { name: 'Sunstone Summit', ground: '#a8d96d', light: '#e2ec89', dark: '#72aa58', leaf: '#718e42', leafLight: '#d3bd57', path: '#ffe0a0', water: '#43bfd1', glow: '#fff078', canopy: ['#a5c84f', '#e6b952', '#e98772', '#7cbf63'] },
 };
+
+Object.assign(THEMES, {
+  luna: { name: 'Moonchime Craters', ground: '#9a9cc8', light: '#d4cef2', dark: '#656e9b', leaf: '#7779b0', leafLight: '#aaa9dd', path: '#e2daed', water: '#111d39', glow: '#ccf9ff', canopy: ['#afa1db'], space: 'moon' },
+  cinder: { name: 'Emberglass Basin', ground: '#895e78', light: '#b88386', dark: '#543e60', leaf: '#a46777', leafLight: '#d79680', path: '#dfb29b', water: '#421f38', glow: '#ffe5a5', canopy: ['#d28b73'], space: 'volcano' },
+  zephyr: { name: 'Cloudbloom Gardens', ground: '#8ebac1', light: '#d5ebe0', dark: '#608b9f', leaf: '#619da8', leafLight: '#b0d5ce', path: '#e9dfbc', water: '#2d537c', glow: '#fff1bf', canopy: ['#abcbd8', '#c0b6dd', '#8accb4'], space: 'cloud' },
+});
 
 const TREES = [
   [82, 110, 1.45], [208, 146, 1.2], [352, 104, 1.55], [495, 160, 1.1], [654, 100, 1.5],
@@ -36,10 +43,17 @@ const DIALOGUE = {
   summit: 'You have reached the trail above the clouds! Water magic helps against fire, but every element has a place on your team. The final guardian is waiting to the north. Restore this last region, and the entire island will shine again. Even after that, wandering packs are ready for more adventures.',
 };
 
+for (const area of REGIONS.filter((item) => item.planetId !== 'bramble')) {
+  DINO_IDS[area.id] = area.encounterIds.map((id) => ENCOUNTERS.find((item) => item.id === id).dinoIds[0]);
+  ENCOUNTER_NAMES[area.id] = area.names;
+  RANGER_NAMES[area.id] = { luna: 'Captain Selene', cinder: 'Ranger Ash', zephyr: 'Navigator Skye' }[area.id];
+  DIALOGUE[area.id] = `${area.description} Weaken wild dinosaurs to 30% health, break their shields, then try a friend orb. A failed capture improves your next chance. The planet guardian powers up below half health, so prepare a shield and a healing friend!`;
+}
+
 export const WORLD_CONFIG = Object.freeze(Object.fromEntries(REGION_IDS.map((id, index) => [id, Object.freeze({
   id, name: THEMES[id].name, width: 1600, height: 1000, spawn: { x: 220, y: 760 },
   objects: [
-    { id: `${id}-ranger`, type: 'npc', x: 260, y: 620, name: RANGER_NAMES[id], label: 'Talk', dialogue: DIALOGUE[id], color: ['plum', 'blue', 'rust', 'gold'][index] },
+    { id: `${id}-ranger`, type: 'npc', x: 260, y: 620, name: RANGER_NAMES[id], label: 'Talk', dialogue: DIALOGUE[id], color: ['plum', 'blue', 'rust', 'gold'][index % 4] },
     { id: `${id}-camp`, type: 'beacon', x: 170, y: 685, name: 'Explorer camp', label: 'Camp' },
     { id: `${id}-1`, type: 'enemy', x: 470, y: 760, dinoId: DINO_IDS[id][0], name: ENCOUNTER_NAMES[id][0], patrol: 17, boss: false },
     { id: `${id}-2`, type: 'enemy', x: 970, y: 520, dinoId: DINO_IDS[id][1], name: ENCOUNTER_NAMES[id][1], patrol: 24, boss: false },
@@ -47,8 +61,8 @@ export const WORLD_CONFIG = Object.freeze(Object.fromEntries(REGION_IDS.map((id,
     { id: `${id}-roam`, type: 'enemy', x: 610, y: 238, dinoId: DINO_IDS[id][1], name: 'Wandering challenger', patrol: 25, boss: false, roaming: true },
     { id: `${id}-chest-1`, type: 'chest', x: 390, y: 180, name: 'Hidden supply chest' },
     { id: `${id}-chest-2`, type: 'chest', x: 1110, y: 780, name: 'Ancient supply chest' },
-    ...(index < 3 ? [{ id: `${id}-exit`, type: 'gate', x: 1450, y: 500, destination: REGION_IDS[index + 1], name: `To ${THEMES[REGION_IDS[index + 1]].name}`, forward: true }] : [{ id: 'summit-shrine', type: 'beacon', x: 1450, y: 500, name: 'Sunstone sanctuary', label: 'Sanctuary' }]),
-    ...(index > 0 ? [{ id: `${id}-entrance`, type: 'gate', x: 95, y: 775, destination: REGION_IDS[index - 1], name: `To ${THEMES[REGION_IDS[index - 1]].name}`, forward: false }] : []),
+    ...(index < REGION_IDS.length - 1 ? [{ id: `${id}-exit`, type: 'gate', x: 1450, y: 500, destination: REGION_IDS[index + 1], name: `To ${THEMES[REGION_IDS[index + 1]].name}`, forward: true }] : [{ id: `${id}-shrine`, type: 'beacon', x: 1450, y: 500, name: 'Galaxy sanctuary', label: 'Sanctuary' }]),
+    ...(index > 0 ? [{ id: `${id}-entrance`, type: 'gate', x: 95, y: 775, destination: REGIONS[index].requires?.split('-')[0] || REGION_IDS[index - 1], name: `To ${THEMES[REGIONS[index].requires?.split('-')[0] || REGION_IDS[index - 1]].name}`, forward: false }] : []),
   ],
 })])));
 
@@ -56,7 +70,6 @@ function config(regionId) { return WORLD_CONFIG[regionId] || WORLD_CONFIG.fern; 
 function clamp(n, lo, hi) { return Math.min(hi, Math.max(lo, n)); }
 function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
 function isCleared(state, id) { return Boolean(state?.completed?.includes(id)); }
-function regionCleared(state, id) { return [1, 2, 3].every(n => isCleared(state, `${id}-${n}`)); }
 function guardianOpen(state, regionId) { return [1, 2].every(n => isCleared(state, `${regionId}-${n}`)); }
 
 export function getWorldObjects(regionId, state = {}) {
@@ -64,7 +77,7 @@ export function getWorldObjects(regionId, state = {}) {
     completed: object.type === 'enemy' && isCleared(state, object.id),
     opened: object.type === 'chest' && Boolean(state.world?.treasures?.includes(object.id)),
     talked: object.type === 'npc' && Boolean(state.world?.talked?.includes(object.id)),
-    locked: (object.type === 'enemy' && object.boss && !guardianOpen(state, regionId)) || (object.type === 'gate' && object.forward && !regionCleared(state, regionId)),
+    locked: (object.type === 'enemy' && object.boss && !guardianOpen(state, regionId)) || (object.type === 'gate' && !isRegionUnlocked({ completed: state.completed || [] }, object.destination)),
   }));
 }
 
@@ -126,6 +139,19 @@ function label(ctx, text, x, y, { color = '#f9f5db', background = '#243d34e8', s
 }
 
 function drawTree(ctx, x, y, scale, theme) {
+  if (theme.space && theme.space !== 'cloud') {
+    ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
+    ellipse(ctx, 0, 5, 36, 12, '#20254155');
+    if (theme.space === 'moon') {
+      drawCrystal(ctx, 0, 0, 1.1);
+      ctx.strokeStyle = '#eff4ff99'; ctx.lineWidth = 2; ctx.beginPath(); ctx.ellipse(0, -35, 30, 9, -.25, 0, Math.PI * 2); ctx.stroke();
+    } else {
+      line(ctx, [[-22, 0], [-18, -43], [0, -83], [20, -47], [27, 0]], '#403c5a', 23);
+      line(ctx, [[0, -65], [-4, -40], [8, -25], [3, -5]], '#ffc078', 4);
+      ellipse(ctx, 0, -83, 14, 5, '#ffd399');
+    }
+    ctx.restore(); return;
+  }
   ctx.save(); ctx.translate(x, y); ctx.scale(scale, scale);
   const canopy = theme.canopy[Math.abs(Math.floor(x / 90 + y / 130)) % theme.canopy.length];
   ellipse(ctx, 8, 5, 59, 18, '#1b603b38');
@@ -142,7 +168,7 @@ function drawTree(ctx, x, y, scale, theme) {
 }
 
 function drawRock(ctx, x, y, size, regionId) {
-  const purple = regionId === 'crystal';
+  const purple = regionId === 'crystal' || regionId === 'luna';
   ellipse(ctx, x + 3, y + 6, size, size * .4, '#253c382d');
   ctx.fillStyle = purple ? '#8e8ed0' : '#819f85'; ctx.strokeStyle='#315d55';ctx.lineWidth=3;ctx.beginPath();
   [[-1,-.8],[.67,-.45],[.91,.15],[.5,.48],[-.65,.32],[-.91,-.06]].forEach(([a,b],i) => i ? ctx.lineTo(x+a*size,y+b*size) : ctx.moveTo(x+a*size,y+b*size)); ctx.closePath(); ctx.fill();
@@ -150,6 +176,13 @@ function drawRock(ctx, x, y, size, regionId) {
 }
 
 function drawBush(ctx,x,y,scale,theme) {
+  if (theme.space === 'moon') { drawCrystal(ctx, x, y, scale * .65); return; }
+  if (theme.space === 'volcano') {
+    ellipse(ctx,x,y+5,40*scale,13*scale,'#fdae7555');
+    ellipse(ctx,x,y,32*scale,11*scale,'#493c57');
+    for (let i=0;i<3;i++) ellipse(ctx,x+(i-1)*12*scale,y-(10+i*15)*scale,(10+i*5)*scale,13*scale,'#ffe6dc38');
+    return;
+  }
   ctx.save();ctx.translate(x,y);ctx.scale(scale,scale);ellipse(ctx,0,8,45,13,'#1d684033');
   ctx.fillStyle=theme.leafLight;ctx.strokeStyle='#26714f';ctx.lineWidth=4;
   [[-28,-3,25,22],[0,-15,31,29],[31,-2,25,23],[-5,5,39,24]].forEach(([bx,by,rx,ry])=>{ctx.beginPath();ctx.ellipse(bx,by,rx,ry,0,0,Math.PI*2);ctx.fill();ctx.stroke();});
@@ -158,6 +191,10 @@ function drawBush(ctx,x,y,scale,theme) {
 }
 
 function drawFlowerPatch(ctx,x,y,theme) {
+  if (theme.space === 'moon' || theme.space === 'volcano') {
+    for (let i=0;i<4;i++) { const ox=x+(i-1.5)*11; line(ctx,[[ox-3,y],[ox,y-12-i%2*8],[ox+4,y]],theme.glow,3); }
+    return;
+  }
   for(let i=0;i<5;i++) {
     const ox=(i-2)*9,oy=Math.abs(i-2)*2;line(ctx,[[x+ox,y],[x+ox+(i%2?3:-2),y-17-oy]],theme.dark,2);
     const color=i%3===0?'#ff85bd':i%3===1?'#ffe278':'#b4ecff';
@@ -190,11 +227,19 @@ function makeGround(regionId) {
   const ctx = ground.getContext('2d'); const theme = THEMES[regionId]; const rng = seeded(REGION_IDS.indexOf(regionId) * 1293 + 541);
   ctx.fillStyle = theme.water; ctx.fillRect(0, 0, 1600, 1000);
   for(let i=0;i<50;i++){const x=rng()*1600,y=rng()*1000;line(ctx,[[x,y],[x+18+rng()*22,y+2],[x+37+rng()*20,y]],'#d5ffff75',3);}
-  rounded(ctx,14,15,1572,982,82,'#804d32');
-  rounded(ctx,19,6,1562,966,76,'#ba6e42');
+  rounded(ctx,14,15,1572,982,82,theme.space ? theme.dark : '#804d32');
+  rounded(ctx,19,6,1562,966,76,theme.space ? theme.leaf : '#ba6e42');
   rounded(ctx,27,-4,1546,962,69,theme.ground);
-  ctx.strokeStyle='#d7f195';ctx.lineWidth=7;ctx.beginPath();ctx.roundRect(31,2,1538,949,64);ctx.stroke();
+  ctx.strokeStyle=theme.space ? theme.glow : '#d7f195';ctx.lineWidth=7;ctx.beginPath();ctx.roundRect(31,2,1538,949,64);ctx.stroke();
   for (let i = 0; i < 120; i++) ellipse(ctx, 35+rng()*1530, 20+rng()*925, 30+rng()*90, 14+rng()*42, i%3 ? `${theme.light}2f` : `${theme.dark}1c`);
+  if (theme.space) {
+    for (let i = 0; i < 24; i++) {
+      const x = 90 + rng() * 1410, y = 70 + rng() * 840;
+      if (theme.space === 'moon') { ellipse(ctx, x, y, 22 + rng() * 35, 10 + rng() * 17, '#595c8644'); ellipse(ctx, x, y - 4, 17, 7, '#e3d6f42f'); }
+      else if (theme.space === 'volcano') line(ctx, [[x, y], [x + 18, y + 7], [x + 34, y - 5], [x + 50, y]], '#ffb98980', 3);
+      else ellipse(ctx, x, y, 48, 17, '#ffffff2b');
+    }
+  }
   // Broad interconnecting paths make exploration legible without forcing a single corridor.
   const paths = [[[95,775],[230,760],[470,760],[675,710],[833,710],[1000,616],[1200,570],[1450,500]], [[470,760],[460,625],[535,470],[610,238],[390,180]], [[1000,616],[970,520],[1130,423],[1230,270]], [[1100,602],[1110,780]], [[230,760],[260,620]]];
   paths.forEach(points=> { line(ctx,points,'#9e653f',104);line(ctx,points,`${theme.dark}aa`,96);line(ctx,points,theme.path,82);line(ctx,points,'#fff2c36b',60); });
@@ -230,7 +275,8 @@ function makeGround(regionId) {
     if(i%4===0){ellipse(ctx,x,y-11,3.5,3.5,i%8===0?'#ffe16d':'#ff91c7');ellipse(ctx,x+5,y-8,2.5,2.5,'#eefdc7');}
   }
   // Bright grass fringe marks the raised island edge; these margins are collidable.
-  line(ctx,[[28,50],[28,950]],'#45b85a',18);line(ctx,[[1572,40],[1572,950]],'#45b85a',18);line(ctx,[[35,950],[1565,950]],'#45b85a',18);
+  const rim = theme.space ? theme.dark : '#45b85a';
+  line(ctx,[[28,50],[28,950]],rim,18);line(ctx,[[1572,40],[1572,950]],rim,18);line(ctx,[[35,950],[1565,950]],rim,18);
   return ground;
 }
 
@@ -258,7 +304,12 @@ export function mountWorld({ canvas, state, onPosition = () => {}, onEncounter =
     if(!sprites.has(id)) sprites.set(id,loadSprite(id.startsWith('hero:') ? heroArt({color:id.split(':')[1],gear:id.split(':')[2]||'field'}) : dinoArt(id)));
     return sprites.get(id);
   };
-  const heroSprite=()=>obtainSprite(`hero:${currentState.player?.color||'teal'}:${currentState.gear||'field'}`);
+  const heroSprite=()=> {
+    const look = { ...currentState.appearance, gear: currentState.gear || 'field', weapon: currentState.weapon || 'staff' };
+    const key = `explorer:${JSON.stringify(look)}`;
+    if (!sprites.has(key)) sprites.set(key, loadSprite(heroArt(look)));
+    return sprites.get(key);
+  };
   const notifyHint=(text)=>{if(text!==lastHint){lastHint=text;onHint(text);}};
   const savePosition=()=> { if(!destroyed && (distance(position,lastSaved)>.1)) {lastSaved={...position};onPosition({regionId,...position});} };
   const blocked=()=>document.hidden||Boolean(document.querySelector('dialog[open]'))||isTextFocus();

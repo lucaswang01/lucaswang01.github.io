@@ -3,6 +3,9 @@ const palettes = {
   fern: { sky: ['#081a30', '#244b5f'], mist: '#83edc4', ground: '#305855', rim: '#7fbca0', crystal: '#5effd4' },
   river: { sky: ['#102443', '#39709b'], mist: '#93e6ff', ground: '#365c79', rim: '#93cedb', crystal: '#73d7ff' },
   crystal: { sky: ['#191639', '#4a4382'], mist: '#c3a6fa', ground: '#56476d', rim: '#c4a9da', crystal: '#d4acff' },
+  luna: { sky: ['#121530', '#665a91'], mist: '#d8caf9', ground: '#676388', rim: '#bbb0d3', crystal: '#b2eaff' },
+  cinder: { sky: ['#2d152c', '#995555'], mist: '#ffcb92', ground: '#695064', rim: '#d5a393', crystal: '#ffb073' },
+  zephyr: { sky: ['#193556', '#79a6c6'], mist: '#d0ffed', ground: '#60899d', rim: '#bfe3df', crystal: '#fff1ab' },
   summit: { sky: ['#27162f', '#925145'], mist: '#ffb989', ground: '#634951', rim: '#d4a089', crystal: '#ffca73' },
 };
 const colors = { neutral: '#c7a3ff', fire: '#ff9b45', water: '#61deff', leaf: '#9cf76a', stone: '#e6c094', air: '#c0eaff', sun: '#ffe68a' };
@@ -49,6 +52,13 @@ export function mountBattleArena({ root, regionId, reducedMotion = false, animat
     bg.fillStyle = sky; bg.fillRect(0, 0, width, height);
     for (let i = 0; i < 65; i++) { bg.globalAlpha = .25 + .45 * (Math.sin(t + i) + 1) / 2; ellipse(bg, rand(i) * width, rand(i + 99) * height * .5, i % 4 ? 1 : 2, i % 4 ? 1 : 2, '#d6f8ff'); } bg.globalAlpha = 1;
     glow(bg, width * .53, height * .26, width * .4, palette.mist, .17);
+    if (['luna', 'cinder', 'zephyr'].includes(regionId)) {
+      const x = width * .77, y = height * .2, r = Math.min(width * .085, 90);
+      glow(bg, x, y, r * 1.6, palette.mist, .12);
+      ellipse(bg, x, y, r, r, regionId === 'cinder' ? '#db926a' : regionId === 'luna' ? '#82a2c4' : '#c6c1d9');
+      for (let i = 0; i < 6; i++) ellipse(bg, x + (rand(i) - .5) * r, y + (rand(i + 30) - .5) * r, 8 + rand(i) * 12, 5 + rand(i) * 8, '#ffffff28');
+      bg.save(); bg.translate(x, y); bg.rotate(-.3); bg.strokeStyle = '#c5deee66'; bg.lineWidth = 6; bg.beginPath(); bg.ellipse(0, 0, r * 1.5, r * .29, 0, 0, Math.PI * 2); bg.stroke(); bg.restore();
+    }
     // Distant floating islets, mountains and translucent aurora ribbons.
     for (let layer = 0; layer < 3; layer++) {
       bg.fillStyle = ['#172e47', '#1c3a4f', '#254959'][layer]; bg.globalAlpha = .6;
@@ -113,7 +123,11 @@ export function mountBattleArena({ root, regionId, reducedMotion = false, animat
     if (kind === 'ultimate') { fx.globalAlpha = Math.sin(p * Math.PI) * .14; fx.fillStyle = '#7554c9'; fx.fillRect(0, 0, width, height); fx.globalAlpha = 1; }
     for (let targetIndex = 0; targetIndex < targets.length; targetIndex++) {
       const target = targets[targetIndex];
-      if (kind === 'ultimate') {
+      if (kind === 'capture') {
+        const orb = clamp((p - .12) / .38), x = source.x + (target.x - source.x) * orb, y = source.y + (target.y - source.y) * orb - Math.sin(orb * Math.PI) * 80;
+        if (p < .52) { glow(fx, x, y, 42, '#b9ffed'); ellipse(fx, x, y, 14, 14, '#f6e1ae'); ring(x, y, 15, '#94ffdc', 1); star(fx, x, y, 8, '#7c62a4', p * 9); }
+        else { const wobble = Math.sin(p * 45) * (1 - p) * 12; glow(fx, target.x, target.y, 82, '#b9ffed', .3); ring(target.x + wobble, target.y, 45 + Math.sin(p * 20) * 5, animation.success ? '#b9ffed' : '#e4c6ff', 1); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4 + p * 4; star(fx, target.x + Math.cos(a) * 65, target.y + Math.sin(a) * 55, 7, '#ffe8a4', a); } }
+      } else if (kind === 'ultimate') {
         for (let i = 0; i < 5; i++) {
           const fall = clamp((p - .15 - i * .035) / .48), x = target.x - 170 * (1 - fall) + (i - 2) * 18, y = target.y - height * .65 * (1 - fall);
           if (fall > 0 && fall < 1) { line(fx, [[x - 32, y - 90], [x, y]], ['#a9eaff', '#fbd6ff', '#ffdf72'][i % 3], 7); glow(fx, x, y, 34, '#ffdf72'); star(fx, x, y, 16, '#fff1a7', p * 9); }
@@ -127,7 +141,27 @@ export function mountBattleArena({ root, regionId, reducedMotion = false, animat
         if (p > .2) for (let i = 0; i < 4; i++) { fx.globalAlpha = (1 - p) * .8; ring(source.x, source.y, Math.max(1, (p - .2) * width - i * 40), color, .7); } fx.globalAlpha = 1;
       } else if (travel > 0 && p < .67) {
         const tx = source.x + (target.x - source.x) * travel, ty = source.y + (target.y - source.y) * travel - Math.sin(travel * Math.PI) * 62;
-        if (element === 'leaf') {
+        if (['saber-comet', 'phoenix-cut'].includes(animation.spellId)) {
+          fx.save(); fx.translate(tx, ty); fx.rotate(-.9 + travel * 1.3);
+          for (let i=0;i<3;i++) {
+            fx.beginPath(); fx.arc(0, 0, 25+i*10, -.9, 1.3); fx.strokeStyle=i===1 ? '#fff6c7' : color; fx.lineWidth=9-i*2; fx.stroke();
+          }
+          fx.restore(); glow(fx,tx,ty,55,color,.35);
+        } else if (['thunder-arrow', 'meteor-volley'].includes(animation.spellId)) {
+          const volley = animation.spellId === 'meteor-volley';
+          for (let i=0;i<(volley ? 3 : 1);i++) {
+            const x=tx-i*22, y=ty+(i-1)*19*(volley ? 1 : 0);
+            fx.save(); fx.translate(x,y); fx.rotate(Math.atan2(target.y-source.y, target.x-source.x));
+            line(fx,[[-64,0],[-42,-8],[-30,5],[-12,0]],`${color}99`,3);
+            line(fx,[[-28,0],[16,0],[5,-9],[16,0],[5,9]],'#fff6d4',4);
+            line(fx,[[-26,-8],[-18,0],[-26,8]],color,4); fx.restore(); glow(fx,x,y,25,color,.35);
+          }
+        } else if (animation.spellId === 'crater-crash') {
+          fx.save(); fx.translate(target.x,target.y-120*(1-travel)); fx.rotate(-1.2+travel*1.2);
+          line(fx,[[0,40],[0,-16]],'#cfbcf0',9);
+          fx.fillStyle='#897aaf'; fx.fillRect(-31,-32,62,30); fx.strokeStyle='#eee0b5'; fx.lineWidth=3; fx.strokeRect(-31,-32,62,30);
+          star(fx,0,-17,10,'#e5fbff',p*5); fx.restore();
+        } else if (element === 'leaf') {
           const points = Array.from({ length: 26 }, (_, i) => { const f = i / 25 * travel; return [source.x + (target.x - source.x) * f, source.y + (target.y - source.y) * f + Math.sin(f * 20 - p * 9) * 17 * Math.sin(f * Math.PI)]; });
           line(fx, points, '#3a9648', 9); line(fx, points, color, 3);
           for (let i = 3; i < points.length; i += 4) { fx.save(); fx.translate(...points[i]); fx.rotate(i); ellipse(fx, 0, 0, 11, 4, color); fx.restore(); }

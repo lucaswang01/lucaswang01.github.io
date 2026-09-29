@@ -45,3 +45,10 @@ Implementation decisions:
 - Make the shared special deterministic: three solved puzzles produce one Dino Starburst. No answer timer, chance-based reward, purchase, daily-pressure mechanic, or mistake penalty was added.
 - Respect system reduced motion and a persistent in-game gentle-effects preference. The renderer uses capped pixel density and animation rate, skips hidden-tab painting, and destroys its animation frame and resize observer when leaving the scene.
 - Save a move atomically before showing its animation. Old Version 2 saves default the new stars field to zero. Tests exercise mid-animation reloads, strict star validation, real enemy chronology, elemental effect families, and phone controls.
+
+
+## Dino Galaxy expansion
+
+This expansion implements the requested customization, collection, planetary exploration, and boss features as original game systems. It adds a saved appearance workshop, five weapons with distinct spell selections, two editable companion slots, six illustrated dinosaur species, and three planets. A catch attempt uses earned magic and a teammate turn; visible chances improve after failure. Gentle Tap prevents an accidental knockout, including from lingering embers. There are no paid attempts or random item purchases. Primary guardians remain challenges to defeat, and story rewards still grant companions.
+
+The new bosses have named, scheduled attacks, a visible stronger phase below half health, and a healing pattern for the final boss. Their tells make added difficulty something players can plan around. Older saves retain their original combat statistics, equipment, collection, and progression, with defaults for the new fields. These choices respond to the requested gameplay; they are not claims about the exact mechanics of Pokémon or any other commercial game.

@@ -8,7 +8,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createSave as createLegacySave, beginBattle as beginLegacyBattle, submitAnswer as legacyAnswer } from '../core.mjs';
-import { createGame, normalizeGame, startBattle, knownSpells, SPELLS, getLevel } from '../rpg-core.mjs';
+import { createGame, normalizeGame, startBattle, knownSpells, SPELLS, getLevel, REGIONS, DINOS, updatePosition, WEAPONS, WEAPON_SPELLS, customizeExplorer } from '../rpg-core.mjs';
 
 const require = createRequire(import.meta.url);
 let playwright;
@@ -240,6 +240,33 @@ try {
   assert.ok(firstWin.completed.includes('fern-1'));
   console.log('PASS keyboard exploration, focused-input guard, visible encounter, real pet turn, math-only damage resource, retries, reload, and first win');
 
+  const questionFixture = startBattle(createGame({ name: 'Question Explorer', starter: 'sprig', topic: 'mul' }), 'fern-1');
+  await confirmImport(questionFixture);
+  await action('change-question').click();
+  let changedQuestion = await save();
+  assert.notEqual(changedQuestion.battle.question.prompt, questionFixture.battle.question.prompt);
+  assert.deepEqual({ ...changedQuestion, battle: { ...changedQuestion.battle, question: questionFixture.battle.question } }, questionFixture);
+  assert.equal(await page.locator('#battle-answer').inputValue(), '');
+  await page.locator('#battle-answer').fill(String(changedQuestion.battle.question.answer + 1));
+  await page.locator('#charge-magic').click();
+  const attemptedQuestion = await save();
+  assert.equal(await page.locator('.math-feedback.retry').count(), 1);
+  await action('change-question').click();
+  changedQuestion = await save();
+  assert.notEqual(changedQuestion.battle.question.prompt, attemptedQuestion.battle.question.prompt);
+  assert.deepEqual(changedQuestion.stats, attemptedQuestion.stats);
+  assert.equal(await page.locator('.math-feedback').count(), 0);
+  assert.equal(await page.locator('#battle-answer').inputValue(), '');
+  assert.equal(await page.locator('#battle-answer').evaluate(node => node === document.activeElement), true);
+  await page.reload();
+  assert.deepEqual(await save(), changedQuestion, 'The replacement question autosaves and survives refresh');
+  await charge();
+  assert.equal((await save()).battle.mana, 6);
+  assert.equal((await save()).battle.stars, 1);
+  assert.equal((await save()).stats.answered, 2);
+  assert.equal((await save()).stats.correct, 1);
+  console.log('PASS free random question changes, cleared feedback/input, preserved attempts, reload, and normal magic rewards');
+
   // A valid imported adventure exercises three-character combat and a level boundary.
   let teamFixture = createGame({ name: 'Team Explorer', starter: 'sprig', topic: 'mul' });
   teamFixture.xp = 90;
@@ -372,7 +399,7 @@ try {
   assert.equal(await page.locator('.arena-canvas').count(), 1);
   assert.equal(await page.locator('.effects-canvas').count(), 1);
   await action('spellbook').click();
-  assert.equal(await page.locator('.battle-spellbook [data-action="select-spell"]').count(), 25);
+  assert.equal(await page.locator('.battle-spellbook [data-action="select-spell"]').count(), 26);
   await page.locator('.battle-spellbook [data-action="spellbook"]').click();
   await charge();
   assert.equal((await save()).battle.stars, 3);
@@ -431,6 +458,146 @@ try {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   console.log('PASS all spell VFX families, stars, team special, full spellbook, boss telegraph, enemy choreography, sound/motion settings, and mid-cast reload');
 
+  // Galaxy expansion: real form changes, weapon-specific spells, travel, and capture.
+  let galaxy = createGame({ name: 'Galaxy Scout', starter: 'brook', topic: 'mul' });
+  galaxy.xp = 1400;
+  galaxy.completed = REGIONS.slice(0, 6).flatMap(area => area.encounterIds);
+  galaxy.collection = ['brook', ...DINOS.filter(pet => pet.unlockHabitat && galaxy.completed.includes(`${pet.unlockHabitat}-3`)).map(pet => pet.id)];
+  galaxy = normalizeGame(galaxy);
+  await confirmImport(galaxy);
+  await navigate('style');
+  await page.locator('#look-hair').selectOption('ponytail');
+  await page.locator('#look-hairColor').selectOption('violet');
+  await page.locator('#look-outfit').selectOption('space');
+  await page.locator('#look-color').selectOption('rust');
+  await page.locator('[name="weapon"][value="stormbow"]').check();
+  assert.equal(await page.locator('#style-preview-art .hair-ponytail.outfit-space.weapon-stormbow').count(), 1);
+  assert.equal((await save()).weapon, 'staff', 'Live preview does not apply until saved');
+  await page.locator('#style-form button[type="submit"]').click();
+  let styled = await save();
+  assert.equal(styled.weapon, 'stormbow');
+  assert.deepEqual(styled.appearance, { hair: 'ponytail', hairColor: 'violet', outfit: 'space', color: 'rust' });
+  await noOverflow('Desktop wardrobe');
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await page.screenshot({ path: '/tmp/math-go-galaxy-style.png', fullPage: true });
+  await page.reload();
+  assert.deepEqual((await save()).appearance, styled.appearance);
+  await navigate('party');
+  await page.locator('#buddy-one').selectOption('flare');
+  await page.locator('#buddy-two').selectOption('mochi');
+  await page.locator('#party-form button[type="submit"]').click();
+  assert.deepEqual((await save()).party, ['flare', 'mochi']);
+  await page.locator('#buddy-two').selectOption('flare');
+  await page.locator('#party-form button[type="submit"]').click();
+  assert.match(await page.locator('#party-error').textContent(), /different/);
+  await navigate('planets');
+  assert.equal(await page.locator('.planet-card').count(), 4);
+  await page.screenshot({ path: '/tmp/math-go-galaxy-map.png', fullPage: true });
+  await page.locator('[data-action="travel"][data-id="luna"]').click();
+  await page.locator('#world-canvas[data-region="luna"]').waitFor();
+  assert.equal((await save()).world.regionId, 'luna');
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: '/tmp/math-go-lunara-world.png', fullPage: true });
+  for (const regionId of ['cinder', 'zephyr']) {
+    await navigate('planets');
+    await page.locator(`[data-action="travel"][data-id="${regionId}"]`).click();
+    await page.locator(`#world-canvas[data-region="${regionId}"]`).waitFor();
+  }
+  let weaponBattle = startBattle(updatePosition(styled, { regionId: 'luna', x: 220, y: 760 }), 'luna-1');
+  weaponBattle.battle.mana = 12;
+  await confirmImport(weaponBattle);
+  assert.equal(await page.locator('.party-side .hair-ponytail.outfit-space.weapon-stormbow').count(), 1);
+  await action('spellbook').click();
+  assert.equal(await page.locator('.battle-spellbook [data-id="thunder-arrow"]').count(), 1);
+  assert.equal(await page.locator('.battle-spellbook [data-id="ember"]').count(), 0);
+  await page.locator('.battle-spellbook [data-id="thunder-arrow"]').click();
+  await page.locator('[data-action="target"][data-id="enemy-1"]').click();
+  await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  assert.ok((await save()).battle.enemies[0].hp < weaponBattle.battle.enemies[0].hp);
+  await navigate('style');
+  assert.ok(await page.locator('#look-hair').isDisabled(), 'Gear cannot change during a saved battle');
+
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  for (const weapon of WEAPONS.filter(item => item.signatures.length)) {
+    for (const spellId of weapon.signatures) {
+      const spell = WEAPON_SPELLS.find(item => item.id === spellId);
+      let fixture = customizeExplorer(styled, styled.appearance, weapon.id);
+      fixture = startBattle(updatePosition(fixture, { regionId: 'luna', x: 220, y: 760 }), 'luna-2');
+      fixture.battle.mana = 12; fixture.battle.allies[0].hp -= 50;
+      await confirmImport(fixture); await action('spellbook').click();
+      await page.locator(`.battle-spellbook [data-id="${spellId}"]`).click();
+      if (spell.target === 'all') await page.locator('#cast-spell').click();
+      else await page.locator(`[data-action="target"][data-id="${spell.target === 'ally' ? 'hero' : 'enemy-1'}"]`).click();
+      await page.locator('.spell-flight').waitFor();
+      await page.waitForTimeout(450);
+      if (spellId === 'saber-comet') await page.screenshot({ path: '/tmp/math-go-saber-spell.png', fullPage: true });
+      await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+      const after = await save();
+      assert.equal(after.battle.mana, 12 - spell.cost);
+      assert.ok(after.battle.allies[0].cooldowns[spellId] > 0);
+      if (spell.effect === 'regen') assert.ok(after.battle.allies[0].hp > fixture.battle.allies[0].hp);
+      else if (spell.effect === 'shield') assert.ok(after.battle.allies[0].shield > 0);
+      else assert.ok(after.battle.enemies[0].hp < fixture.battle.enemies[0].hp);
+    }
+  }
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+
+  let capturing = startBattle(createGame({ name: 'Dino Rescuer', starter: 'brook', topic: 'mul' }), 'fern-2');
+  capturing.xp = 0; capturing.battle.mana = 12;
+  capturing.battle.enemies[1].hp = 8;
+  await confirmImport(capturing);
+  await action('capture-menu').click();
+  assert.ok(await page.locator('[data-action="capture-target"][data-id="enemy-1"]').isDisabled());
+  assert.match(await page.locator('[data-action="capture-target"][data-id="enemy-2"]').textContent(), /85%/);
+  await page.evaluate(() => { window.originalRandom = Math.random; Math.random = () => .999; });
+  await page.locator('[data-action="capture-target"][data-id="enemy-2"]').click();
+  await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  assert.equal((await save()).battle.captureAttempts['enemy-2'], 1);
+  assert.ok(!(await save()).collection.includes('pebble'));
+  await action('capture-menu').click();
+  assert.match(await page.locator('[data-action="capture-target"][data-id="enemy-2"]').textContent(), /95%/);
+  await page.evaluate(() => { Math.random = () => .5; });
+  await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.locator('[data-action="capture-target"][data-id="enemy-2"]').click();
+  await page.waitForTimeout(900);
+  await page.screenshot({ path: '/tmp/math-go-capture-orb.png', fullPage: true });
+  await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  await page.evaluate(() => { Math.random = window.originalRandom; delete window.originalRandom; });
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  assert.ok((await save()).caught.includes('pebble'));
+  assert.match(await page.locator('.battle-unit[data-id="enemy-2"] .hp-text').textContent(), /BEFRIENDED/);
+  const caughtState = await save();
+  await page.reload();
+  assert.deepEqual(await save(), caughtState, 'Captured pet and remaining battle both survive reload');
+  await action('flee').click(); await action('confirm-flee').click();
+  await navigate('party');
+  await page.locator('#buddy-one').selectOption('pebble');
+  await page.locator('#buddy-two').selectOption('brook');
+  await page.locator('#party-form button[type="submit"]').click();
+  assert.deepEqual((await save()).party, ['pebble', 'brook']);
+  assert.match(await page.locator('.caught-stamp').textContent(), /Captured/);
+
+  let gentle = createGame({ name: 'Gentle Explorer', starter: 'brook', topic: 'mul' });
+  gentle.xp = 1900; gentle = startBattle(gentle, 'fern-1'); gentle.battle.mana = 12;
+  await confirmImport(gentle); await action('capture-menu').click();
+  await page.locator('[data-action="gentle-target"]').click();
+  await page.locator('.battle-scene.animating').waitFor({ state: 'detached' });
+  assert.equal((await save()).battle.enemies[0].hp, 1);
+
+  let skyBoss = structuredClone(styled);
+  skyBoss.completed.push('zephyr-1', 'zephyr-2');
+  skyBoss = startBattle(updatePosition(skyBoss, { regionId: 'zephyr', x: 220, y: 760 }), 'zephyr-3');
+  skyBoss.battle.round = 2; skyBoss.battle.mana = 12;
+  skyBoss.battle.enemies[0].hp = Math.floor(skyBoss.battle.enemies[0].maxHp / 2);
+  await confirmImport(skyBoss);
+  assert.match(await page.locator('.guardian-warning').textContent(), /Tempest spiral/);
+  assert.equal(await page.locator('.boss-unit.enraged').count(), 1);
+  await page.screenshot({ path: '/tmp/math-go-tempest-boss.png', fullPage: true });
+  await action('capture-menu').click();
+  assert.ok(await page.locator('[data-action="capture-target"][data-id="enemy-1"]').isDisabled());
+  await noOverflow('Desktop capture panel');
+  console.log('PASS wardrobe preview/save/reload, pet slots, weapon signatures, three planet journeys, failed/successful capture, gentle attack, captured-pet selection and boss phase');
+
   const mobile = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, reducedMotion: 'reduce' });
   mobile.setDefaultTimeout(10_000);
   const phone = await mobile.newPage(); watch(phone);
@@ -447,6 +614,12 @@ try {
   await phone.waitForTimeout(180);
   assert.deepEqual(await worldPosition(phone), phoneAfter, 'Releasing D-pad stops movement');
   await phone.screenshot({ path: '/tmp/math-go-rpg-world-mobile.png', fullPage: true });
+  await confirmImport(questionFixture, phone);
+  await action('change-question', phone).click();
+  assert.notEqual((await save(phone)).battle.question.prompt, questionFixture.battle.question.prompt);
+  assert.equal((await save(phone)).battle.mana, 0);
+  await noOverflow('Mobile question picker', phone);
+  await phone.screenshot({ path: '/tmp/math-go-question-picker-mobile.png', fullPage: true });
   await confirmImport(exported, phone);
   await noOverflow('Mobile party battle', phone);
   await noOverlappingUnits('Phone full team', phone);
@@ -460,13 +633,28 @@ try {
   assert.ok(await phone.locator('.battle-spellbook').isVisible());
   await noOverflow('Mobile full battle spellbook', phone);
   await phone.locator('.battle-spellbook [data-action="spellbook"]').click();
-  for (const screen of ['party', 'spells', 'journal', 'camp']) { await navigate(screen, phone); await noOverflow(`Mobile ${screen}`, phone); }
+  for (const screen of ['party', 'style', 'planets', 'spells', 'journal', 'camp']) { await navigate(screen, phone); await noOverflow(`Mobile ${screen}`, phone); }
+  await confirmImport(styled, phone);
+  await navigate('style', phone);
+  await phone.locator('#look-hair').selectOption('curls');
+  await phone.locator('#look-outfit').selectOption('armor');
+  await phone.locator('#style-form button[type="submit"]').click();
+  assert.equal((await save(phone)).appearance.hair, 'curls');
+  assert.equal((await save(phone)).appearance.outfit, 'armor');
+  await phone.evaluate(() => window.scrollTo(0, 0));
+  await phone.screenshot({ path: '/tmp/math-go-style-mobile.png', fullPage: true });
   await phone.setViewportSize({ width: 320, height: 740 });
-  for (const screen of ['world', 'party', 'spells', 'journal', 'camp']) { await navigate(screen, phone); await noOverflow(`Small phone ${screen}`, phone); }
+  for (const screen of ['world', 'party', 'style', 'planets', 'spells', 'journal', 'camp']) { await navigate(screen, phone); await noOverflow(`Small phone ${screen}`, phone); }
   await confirmImport(spectacle, phone);
   await noOverflow('320px guardian battle', phone);
   await noOverlappingUnits('320px guardian battle', phone);
   await phone.screenshot({ path: '/tmp/math-go-small-phone.png', fullPage: true });
+  await confirmImport(skyBoss, phone);
+  await action('capture-menu', phone).click();
+  await noOverflow('320px capture menu', phone);
+  assert.ok(await phone.locator('.capture-menu').isVisible());
+  await phone.screenshot({ path: '/tmp/math-go-capture-mobile.png', fullPage: true });
+  await phone.locator('.capture-menu [data-action="capture-menu"]').click();
   await phone.setViewportSize({ width: 1024, height: 768 });
   await noOverflow('Tablet guardian battle', phone);
   await noOverlappingUnits('Tablet guardian battle', phone);
